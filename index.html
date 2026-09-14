@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shajith Sasikumar — AI systems that keep running</title>
+<meta name="description" content="I build AI receptionists, voice agents and workflow automation for small businesses. Engineering Science and Ivey HBA at Western University.">
+<meta name="theme-color" content="#0B0D10">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230B0D10'/><path d='M9 22c6 0 8-4 14-4M9 14c6 0 8-4 14-4' stroke='%23EEF2F6' stroke-width='2.4' fill='none' stroke-linecap='round'/></svg>">
+
+<!-- DEPLOY STEP: patch og:url and og:image with the live absolute URL before zipping -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Shajith Sasikumar — AI systems that keep running">
+<meta property="og:description" content="AI receptionists, voice agents and workflow automation for small businesses.">
+<meta property="og:url" content="PATCH_AT_DEPLOY">
+<meta property="og:image" content="PATCH_AT_DEPLOY">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- one fixed environment layer behind everything -->
+<div class="env" aria-hidden="true"><canvas id="motes"></canvas></div>
+
+<nav class="nav" aria-label="Primary">
+  <a class="nav-mark" href="#top">
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M9 22c6 0 8-4 14-4M9 14c6 0 8-4 14-4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>
+    <span>Shajith Sasikumar</span>
+  </a>
+  <div class="nav-links">
+    <a href="#build">What I build</a>
+    <a href="#record">Record</a>
+    <a href="#work">Work</a>
+    <a class="nav-cta" href="#book">Book a call</a>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="stage" id="stage">
+    <div class="poster" id="poster" aria-hidden="true"></div>
+    <video id="hero-video" preload="none" muted playsinline aria-hidden="true" tabindex="-1"></video>
+    <div class="scrim" aria-hidden="true"></div>
+
+    <svg class="ring" id="ring" viewBox="0 0 48 48" aria-hidden="true">
+      <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-dasharray="126" style="stroke-dashoffset:var(--ld,126)"/>
+    </svg>
+
+    <!-- band 1 -->
+    <div class="band band-1" data-range="0,0.22" data-entrance="drift">
+      <p class="band-kicker">Brampton and London, Ontario</p>
+      <h1 class="band-h split">Shajith Sasikumar</h1>
+      <p class="band-sub">Engineering Science + Ivey HBA, Western University</p>
+    </div>
+
+    <!-- band 2 -->
+    <div class="band band-2" data-range="0.26,0.50" data-entrance="rise">
+      <p class="band-h split">I build systems that keep running after I leave.</p>
+    </div>
+
+    <!-- band 3 -->
+    <div class="band band-3" data-range="0.54,0.74" data-entrance="blur">
+      <p class="band-h blur-pair"><span class="soft" aria-hidden="true">Nothing dropped. Nothing forgotten.</span><span class="sharp">Nothing dropped. Nothing forgotten.</span></p>
+    </div>
+
+    <!-- band 4, the settle -->
+    <div class="band band-4" data-range="0.78,1" data-entrance="settle">
+      <p class="band-h split">And it knows when to hand you the phone.</p>
+      <div class="band-cta">
+        <a class="btn" href="#book">Book a call</a>
+        <a class="btn btn-ghost" href="#build">See what I build</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- the composed static hero: phones and reduced motion -->
+  <div class="static-hero" id="static-hero">
+    <div class="static-inner">
+      <p class="band-kicker">Brampton and London, Ontario</p>
+      <h1 class="static-h">I build systems that keep running after I leave.</h1>
+      <p class="static-sub">AI receptionists, voice agents and automation for small businesses. Engineering Science + Ivey HBA at Western University.</p>
+      <div class="band-cta">
+        <a class="btn" href="#book">Book a call</a>
+        <a class="btn btn-ghost" href="#build">See what I build</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE PROBLEM ============ -->
+<section class="sec sec-problem" id="problem">
+  <div class="wrap">
+    <p class="kicker">The problem</p>
+    <p class="stat-line"><span class="stat" data-count="62">62</span><span class="pct">%</span></p>
+    <h2 class="sec-h">of calls to a small business go unanswered.</h2>
+    <p class="lede">85 percent of those callers never ring back. They ring someone else. You do not have a lead problem. You have a pickup problem.</p>
+  </div>
+</section>
+
+<!-- ============ WHAT I BUILD ============ -->
+<section class="sec" id="build">
+  <div class="wrap">
+    <p class="kicker">What I build</p>
+    <h2 class="sec-h">Six things, each scoped so you know what arrives.</h2>
+    <ul class="offers">
+      <li class="offer"><h3>AI Receptionist</h3><p>Answers every call, books into your real calendar, answers the questions you get twenty times a week, and hands the rest to you with a summary.</p><p class="out">Answers 24/7 · Books appointments · Escalates with context</p></li>
+      <li class="offer"><h3>Voice Agents</h3><p>Inbound and outbound agents that hold a real conversation. Screening enquiries, confirming appointments, chasing the follow ups nobody gets around to.</p><p class="out">Screens enquiries · Confirms bookings · Runs follow ups</p></li>
+      <li class="offer"><h3>Workflow Automation</h3><p>Pipelines that move information for you. Intake forms into the CRM, enquiries into follow up sequences, reports generated and filed without anyone opening a spreadsheet.</p><p class="out">Intake to CRM · Automatic follow up · Reports on a schedule</p></li>
+      <li class="offer"><h3>Websites</h3><p>Landing pages, storefronts, dashboards and full platforms. Designed, built, deployed, with the analytics wired up so you can see what it is doing.</p><p class="out">Designed and built · Deployed and measured · Yours to keep</p></li>
+      <li class="offer"><h3>Brand Identity</h3><p>Logo, colour system, typography and the guidelines that keep it consistent once other people start using it.</p><p class="out">Marks · Colour and type · Usage rules</p></li>
+      <li class="offer"><h3>Custom Builds</h3><p>Chatbots trained on your documents, internal tools, data analysers. Scoped against what you actually need rather than what is fashionable.</p><p class="out">Scoped with you · Built and handed over · Supported after launch</p></li>
+    </ul>
+  </div>
+</section>
+
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

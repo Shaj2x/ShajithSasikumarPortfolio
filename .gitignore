@@ -1,0 +1,10 @@
+# Raw generations and review copies. These stay OUT of the deploy folder and
+# out of git: large binaries, and only processed files belong in assets/.
+review/*.mp4
+review/*.mov
+review/*.png
+review/*.jpg
+review/*.jpeg
+review/*.webp
+*.zip
+.DS_Store
