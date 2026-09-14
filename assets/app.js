@@ -16,7 +16,7 @@ var bandEls = [].slice.call(document.querySelectorAll('.band'));
 
 var VIDEO_URL   = 'assets/hero-scrub.mp4';
 var POSTER_URL  = 'assets/hero-poster.jpg';
-var VIDEO_BYTES = 5200000;   /* real byte size, patched at build time */
+var VIDEO_BYTES = 2328847;   /* real byte size of assets/hero-scrub.mp4 */
 
 /* ---------- the five static hero gates ----------
    These strings are duplicated character for character in style.css.
@@ -402,7 +402,7 @@ document.addEventListener('visibilitychange', function () {
   }
 
   function loop(now) {
-    var step = held ? 0.016 : -0.024;            /* releasing eases back, never snaps */
+    var step = held ? 0.0095 : -0.017;           /* ~1.8s to join; releasing eases back, never snaps */
     v = clamp(v + step, 0, 1);
     paint();
     if ((held && v < 1) || (!held && v > 0)) raf = requestAnimationFrame(loop);
