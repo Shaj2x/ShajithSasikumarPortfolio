@@ -565,6 +565,16 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
    Jumping from the hero to a section below it skipped the whole draw, which
    read as the page breaking. The wipe covers the jump so it lands as a cut
    rather than a teleport. Purpose: preventing a jarring change. */
+/* ---------- the cursor streak ----------
+   A line of light trailing the pointer, in the same stroke language as the
+   mark. Decoration, so it is fine pointers only: on touch there is no
+   cursor to trail, and reduced motion switches it off entirely. It never
+   takes a click, and it stops running the moment the tail catches up. */
+.streak{position:fixed;inset:0;width:100%;height:100%;z-index:250;
+  pointer-events:none;display:none}
+@media (hover:hover) and (pointer:fine){.streak{display:block}}
+@media (prefers-reduced-motion:reduce){.streak{display:none}}
+
 .wipe{position:fixed;inset:0;z-index:300;background:var(--canvas);pointer-events:none;
   transform:translateY(100%);will-change:transform}
 .wipe.in{transform:translateY(0);transition:transform 280ms var(--ease-out)}

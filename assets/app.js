@@ -536,6 +536,156 @@ document.addEventListener('visibilitychange', function () {
   reduceMQ.addEventListener('change', function (e) { if (e.matches) pinLine(); });
 })();
 
+/* ---------- the cursor streak ----------
+   A chain of points, each chasing the one in front of it, so the line lags
+   and whips rather than rigidly following. Same stroke language as the mark:
+   a thin filament of light, brightest at the head, gone by the tail.
+
+   Three things keep it honest. It only exists on a fine pointer that can
+   hover, because a finger has no cursor to trail. Reduced motion switches it
+   off in CSS, and the module never starts. And the loop stops the moment the
+   tail catches the head, so an idle page runs no animation frames at all. */
+(function streak() {
+  var cv = document.getElementById('streak');
+  if (!cv || !cv.getContext) return;
+
+  var fine = matchMedia('(hover: hover) and (pointer: fine)');
+  var still = matchMedia('(prefers-reduced-motion: reduce)');
+  var ctx = cv.getContext('2d');
+
+  var N = 32;                       /* points in the chain */
+  var xs = new Float32Array(N), ys = new Float32Array(N);
+  var mx = 0, my = 0, armed = false, raf = null, last = 0, dpr = 1, idle = 0;
+  var HEAD = 0.55, BODY = 0.25;     /* how hard each point chases the one ahead */
+
+  var rgb = '159,216,255', chan = [159, 216, 255];
+  function readAccent() {
+    var v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    var m = /^#([0-9a-f]{6})$/i.exec(v);
+    if (m) {
+      var n = parseInt(m[1], 16);
+      chan = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      rgb = chan.join(',');
+    }
+  }
+
+  function size() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width  = Math.round(innerWidth  * dpr);
+    cv.height = Math.round(innerHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+    /* One tapered ribbon, filled, rather than a stroke per segment. Stroking
+       segments individually puts a round cap at every joint, and those caps
+       overlap into a row of bright beads. A single filled outline has no
+       joints to bead. */
+    var W = [], i;
+    for (i = 0; i < N; i++) {
+      var t = 1 - i / N;
+      W.push(0.35 + 3.2 * Math.pow(t, 0.75));
+    }
+
+    ctx.beginPath();
+    var first = true;
+    for (i = 0; i < N; i++) {                 /* down one edge */
+      var n = normal(i);
+      var x = xs[i] + n[0] * W[i], y = ys[i] + n[1] * W[i];
+      if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    }
+    for (i = N - 1; i >= 0; i--) {            /* and back up the other */
+      var m = normal(i);
+      ctx.lineTo(xs[i] - m[0] * W[i], ys[i] - m[1] * W[i]);
+    }
+    ctx.closePath();
+
+    /* white at the nib cooling to the accent and out, the same language as
+       the drawing head on the mark */
+    var grad = ctx.createLinearGradient(xs[0], ys[0], xs[N - 1], ys[N - 1]);
+    grad.addColorStop(0,    'rgba(245,251,255,0.95)');
+    grad.addColorStop(0.18, 'rgba(' + rgb + ',0.72)');
+    grad.addColorStop(1,    'rgba(' + rgb + ',0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.shadowColor = 'rgba(' + rgb + ',0.9)';
+    ctx.shadowBlur = 11;
+    ctx.fillStyle = 'rgba(240,249,255,0.95)';
+    ctx.beginPath(); ctx.arc(xs[0], ys[0], 2.2, 0, 6.2832); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  /* unit normal at point i, from the direction of its neighbours */
+  function normal(i) {
+    var a = Math.max(0, i - 1), b = Math.min(N - 1, i + 1);
+    var dx = xs[b] - xs[a], dy = ys[b] - ys[a];
+    var L = Math.hypot(dx, dy);
+    if (L < 1e-4) return [0, 0];
+    return [-dy / L, dx / L];
+  }
+
+  function tick(now) {
+    var dt = Math.min(0.064, (now - (last || now)) / 1000);
+    last = now;
+    /* frame rate independent: the same whip at 60Hz and at 144Hz */
+    var kh = 1 - Math.pow(1 - HEAD, dt * 60);
+    /* once the cursor stops the tail retracts rather than drifting in: the
+       line snaps shut, and the loop gets to rest inside a second */
+    idle += dt;
+    var kb = 1 - Math.pow(1 - Math.min(0.8, BODY * (1 + idle * 6)), dt * 60);
+
+    xs[0] += (mx - xs[0]) * kh;
+    ys[0] += (my - ys[0]) * kh;
+    var spread = Math.abs(mx - xs[0]) + Math.abs(my - ys[0]);
+    for (var i = 1; i < N; i++) {
+      xs[i] += (xs[i - 1] - xs[i]) * kb;
+      ys[i] += (ys[i - 1] - ys[i]) * kb;
+      spread += Math.abs(xs[i - 1] - xs[i]) + Math.abs(ys[i - 1] - ys[i]);
+    }
+
+    draw();
+
+    if (spread < N * 0.02) {        /* the tail has caught up: nothing to animate */
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      raf = null; last = 0;
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function wake() {
+    if (raf === null) { last = 0; raf = requestAnimationFrame(tick); }
+  }
+
+  function onMove(e) {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    /* a live game board owns the pointer, and the ball is the thing to watch */
+    if (e.target && e.target.closest && e.target.closest('.game-frame')) return;
+    mx = e.clientX; my = e.clientY; idle = 0;
+    if (!armed) {                   /* start the chain where the cursor is, not at 0,0 */
+      armed = true;
+      for (var i = 0; i < N; i++) { xs[i] = mx; ys[i] = my; }
+    }
+    wake();
+  }
+
+  function start() {
+    if (!fine.matches || still.matches) return;
+    readAccent(); size();
+    addEventListener('pointermove', onMove, { passive: true });
+    addEventListener('resize', size);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && raf !== null) { cancelAnimationFrame(raf); raf = null; }
+    });
+  }
+
+  start();
+  fine.addEventListener('change', function () { if (fine.matches) start(); });
+})();
+
 /* ---------- the work list ----------
    The cards are real markup in index.html, not something JavaScript has to
    build. The old version fetched first and rendered second, which meant a
@@ -737,54 +887,52 @@ document.addEventListener('visibilitychange', function () {
   var panels = { pong: document.getElementById('panel-pong'), snake: document.getElementById('panel-snake') };
   if (!tabs.length) return;
 
-  var mark = new Image();
-  mark.src = 'assets/ss-mark.png';
-  var markReady = false;
-  mark.onload = function () { markReady = true; sprites = {}; };
-
-  /* The mark is a white glyph on a black field. Drawn straight onto a near
-     black board it all but vanished, which is most of why Pong played badly:
-     you could not see the ball. So the piece is built once instead, as a lit
-     disc with the monogram knocked out of it. Still the logo, now readable
-     at speed. Cached per size and colour; both games share it. */
-  var sprites = {};
-  function sprite(size, colour) {
-    if (!markReady) return null;
-    var s = Math.max(12, Math.ceil(size)), key = s + '|' + colour;
-    if (key in sprites) return sprites[key];
-
-    var c = document.createElement('canvas'); c.width = c.height = s;
-    var x = c.getContext('2d');
-    x.fillStyle = colour;
-    x.beginPath(); x.arc(s / 2, s / 2, s / 2, 0, 6.2832); x.fill();
-
-    try {
-      /* the glyph's own brightness becomes the eraser's alpha */
-      var m = document.createElement('canvas'); m.width = m.height = s;
-      var mx = m.getContext('2d');
-      mx.drawImage(mark, 0, 0, s, s);
-      var img = mx.getImageData(0, 0, s, s), d = img.data;
-      for (var i = 0; i < d.length; i += 4) {
-        var lum = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 255;
-        d[i] = d[i + 1] = d[i + 2] = 0;
-        d[i + 3] = Math.round(Math.min(1, lum * 1.3) * 255);
-      }
-      mx.putImageData(img, 0, 0);
-      x.globalCompositeOperation = 'destination-out';
-      x.drawImage(m, 0, 0);
-      x.globalCompositeOperation = 'source-over';
-    } catch (e) { /* a plain disc still plays perfectly well */ }
-
-    sprites[key] = c;
-    return c;
-  }
-
   function paintTokens() {
     var cs = getComputedStyle(document.documentElement);
     var v = function (n, f) { return (cs.getPropertyValue(n) || '').trim() || f; };
     return { ground: v('--canvas', '#0B0D10'), line: v('--line', '#1E242C'),
              dim: v('--text-dim', '#5D6773'), mark: v('--accent', '#9FD8FF'),
              font: "'Sora', system-ui, sans-serif" };
+  }
+
+  /* The ball is the mark itself, drawn as vector rather than blitted from
+     the PNG. The PNG is a white glyph on black and 96% of it is black, so
+     painted onto a near black board the ball all but vanished: most of why
+     the game felt broken. Drawing the paths lets the stroke be set heavy
+     enough to read at 26px, which a scaled down bitmap never could. */
+  var MARK_VB = { x: 292, y: 256, w: 426, h: 496 };
+  var markPaths = null;
+  function markGeometry() {
+    if (markPaths !== null) return markPaths;
+    markPaths = [];
+    if (typeof Path2D === 'function') {
+      var src = document.querySelector('.hero-mark, .static-mark');
+      if (src) [].forEach.call(src.querySelectorAll('path'), function (p) {
+        try { markPaths.push(new Path2D(p.getAttribute('d'))); } catch (e) {}
+      });
+    }
+    return markPaths;
+  }
+
+  /* Draws the monogram centred on x,y, sized to fit r, at the given angle. */
+  function drawMark(ctx, x, y, r, colour, spin) {
+    var g = markGeometry();
+    var span = Math.max(MARK_VB.w, MARK_VB.h);
+    if (!g.length) {                                   /* no Path2D: a disc still plays */
+      ctx.fillStyle = colour;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+      return;
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    if (spin) ctx.rotate(spin);
+    ctx.scale(r * 2 / span, r * 2 / span);
+    ctx.translate(-(MARK_VB.x + MARK_VB.w / 2), -(MARK_VB.y + MARK_VB.h / 2));
+    ctx.strokeStyle = colour;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.lineWidth = 70;                                /* heavy, so it reads small */
+    for (var i = 0; i < g.length; i++) ctx.stroke(g[i]);
+    ctx.restore();
   }
 
   /* Whichever game is on screen and running. Everything that can take the
@@ -806,7 +954,7 @@ document.addEventListener('visibilitychange', function () {
   (function pong() {
     var cv = document.getElementById('pong'); if (!cv) return;
     var ctx = cv.getContext('2d');
-    var W = 600, H = 400, PW = 12, PH = 76, R = 13, INSET = 12, WIN = 5;
+    var W = 600, H = 400, PW = 12, PH = 76, R = 15, INSET = 12, WIN = 5;
     var PADDLE_V = 470, CPU_V = 300, SERVE_V = 330, MAX_V = 640, STEP = 1 / 120;
 
     var over    = document.getElementById('pong-over'),
@@ -819,7 +967,7 @@ document.addEventListener('visibilitychange', function () {
 
     function fresh() {
       return { py: H / 2 - PH / 2, cy: H / 2 - PH / 2, ps: 0, cs: 0,
-               bx: W / 2, by: H / 2, vx: 0, vy: 0, wait: 0, rally: 0, bias: 0 };
+               bx: W / 2, by: H / 2, vx: 0, vy: 0, wait: 0, rally: 0, bias: 0, spin: 0 };
     }
 
     function serve(toward) {
@@ -865,6 +1013,7 @@ document.addEventListener('visibilitychange', function () {
 
       /* --- ball --- */
       if (held) return;
+      g.spin += g.vx * dt * 0.0035;        /* rolls the way it travels */
       g.bx += g.vx * dt;
       g.by += g.vy * dt;
 
@@ -912,11 +1061,11 @@ document.addEventListener('visibilitychange', function () {
 
       /* the ball dims while it waits to be served, so the pause reads as one */
       ctx.globalAlpha = g.wait > 0 ? 0.5 : 1;
-      var ball = sprite(R * 2 * 3, t.mark);       /* 3x, so it stays crisp */
       ctx.save();
-      ctx.shadowColor = t.mark; ctx.shadowBlur = 18;
-      if (ball) ctx.drawImage(ball, g.bx - R, g.by - R, R * 2, R * 2);
-      else { ctx.fillStyle = t.mark; ctx.beginPath(); ctx.arc(g.bx, g.by, R, 0, 6.2832); ctx.fill(); }
+      ctx.shadowColor = t.mark; ctx.shadowBlur = 24;
+      drawMark(ctx, g.bx, g.by, R, t.mark, g.spin);
+      ctx.shadowBlur = 0;
+      drawMark(ctx, g.bx, g.by, R, t.mark, g.spin);   /* twice: the glow, then the line */
       ctx.restore();
       ctx.globalAlpha = 1;
     }
@@ -1045,11 +1194,9 @@ document.addEventListener('visibilitychange', function () {
       for (var x = 0; x < COLS; x++) for (var y = 0; y < ROWS; y++)
         ctx.fillRect(x * CELL + CELL / 2, y * CELL + CELL / 2, 1, 1);
 
-      var pellet = sprite(CELL * 3, t.mark);
       ctx.save();
       ctx.shadowColor = t.mark; ctx.shadowBlur = 14;
-      if (pellet) ctx.drawImage(pellet, s.food.x * CELL, s.food.y * CELL, CELL, CELL);
-      else { ctx.fillStyle = t.mark; ctx.fillRect(s.food.x * CELL, s.food.y * CELL, CELL, CELL); }
+      drawMark(ctx, s.food.x * CELL + CELL / 2, s.food.y * CELL + CELL / 2, CELL / 2, t.mark, 0);
       ctx.restore();
 
       s.body.forEach(function (seg, i) {
