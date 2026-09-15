@@ -81,14 +81,39 @@ bandEls.forEach(function (el) {
 });
 
 /* ---------- the mark: measure once, then only write on change ---------- */
-var lens = [], total = 0;
+var lens = [], total = 0, samples = [];
+var SAMPLES = 480;   /* points cached per stroke; ~0.3px of error at hero size */
+
 function measureMark() {
   lens = marks.map(function (m) { return m.getTotalLength(); });
   total = lens.reduce(function (a, b) { return a + b; }, 0);
-  marks.forEach(function (m, i) {
-    m.style.setProperty('--len', lens[i].toFixed(1));
-    m.style.setProperty('--off', lens[i].toFixed(1));
+
+  /* getPointAtLength is a synchronous geometry call. Doing it per frame is
+     the kind of thing that shows up as micro stutter under load, so the
+     path is sampled once here and the head just reads the table after. */
+  samples = marks.map(function (m, i) {
+    var len = lens[i], out = new Float32Array((SAMPLES + 1) * 2);
+    for (var j = 0; j <= SAMPLES; j++) {
+      var pt = m.getPointAtLength(len * j / SAMPLES);
+      out[j * 2] = pt.x; out[j * 2 + 1] = pt.y;
+    }
+    return out;
   });
+
+  marks.forEach(function (m, i) {
+    m.style.strokeDasharray = lens[i].toFixed(1);
+    m.style.strokeDashoffset = lens[i].toFixed(1);
+  });
+}
+
+function pointAt(i, drawn) {
+  var tbl = samples[i];
+  if (!tbl) return null;
+  var f = clamp(drawn / lens[i], 0, 1) * SAMPLES;
+  var a = Math.floor(f), t = f - a;
+  if (a >= SAMPLES) { a = SAMPLES - 1; t = 1; }
+  var x0 = tbl[a * 2], y0 = tbl[a * 2 + 1], x1 = tbl[a * 2 + 2], y1 = tbl[a * 2 + 3];
+  return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t };
 }
 
 var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1;
@@ -104,13 +129,13 @@ function drawMark(p) {
     var len = lens[i];
     var drawn = clamp(drawnTotal - acc, 0, len);
     var off = len - drawn;
-    if (lastOff[i] === undefined || Math.abs(off - lastOff[i]) > 0.4) {
+    if (lastOff[i] === undefined || Math.abs(off - lastOff[i]) > 0.3) {
       lastOff[i] = off;
-      marks[i].style.setProperty('--off', off.toFixed(1));
+      marks[i].style.strokeDashoffset = off.toFixed(1);
     }
     if (drawn > 0.5 && drawn < len - 0.5) {
-      var pt = marks[i].getPointAtLength(drawn);
-      hx = pt.x; hy = pt.y;
+      var pt = pointAt(i, drawn);
+      if (pt) { hx = pt.x; hy = pt.y; }
     }
     acc += len;
   }
@@ -159,19 +184,33 @@ function heroProgress() {
 }
 
 /* ---------- the rAF loop that rests ---------- */
-var target = 0, shown = 0, rafId = null, lastTick = 0, heroOnScreen = true;
+var target = 0, shown = 0, vel = 0, rafId = null, lastTick = 0, heroOnScreen = true;
+
+/* A spring, not eased interpolation. Exponential smoothing always trails the
+   scroll and crawls to a stop, which reads as lag. A spring carries velocity,
+   so reversing the scroll mid-stroke turns the line around with its own
+   momentum instead of snapping direction.
+   damping / (2 * sqrt(stiffness)) = 37 / 36.88 = 1.003, so it is critically
+   damped: no overshoot. A logo that sprang past itself and un-drew would be
+   a bug, not a flourish. */
+var K = 340, C = 37;
 
 function tick(now) {
-  var dt = Math.min(100, now - (lastTick || now));
+  var dt = Math.min(64, now - (lastTick || now)) / 1000;   /* seconds, clamped */
   lastTick = now;
-  /* frame rate independent easing: a 120Hz screen converges at the same
-     speed as a 60Hz one, so the feel does not change per machine */
-  shown += (target - shown) * (1 - Math.pow(1 - 0.18, dt / 16.667));
+
+  /* substep so a long frame cannot make the spring explode */
+  var steps = Math.max(1, Math.ceil(dt / 0.0084));
+  var h = dt / steps;
+  for (var st = 0; st < steps; st++) {
+    vel += (-K * (shown - target) - C * vel) * h;
+    shown += vel * h;
+  }
 
   if (loadK < 1 && loadStart) loadK = clamp((now - loadStart) / 900, 0, 1);
 
-  var settled = Math.abs(target - shown) < 0.0004 && loadK >= 1;
-  if (settled) { shown = target; rafId = null; lastTick = 0; }
+  var settled = Math.abs(target - shown) < 0.0002 && Math.abs(vel) < 0.002 && loadK >= 1;
+  if (settled) { shown = target; vel = 0; rafId = null; lastTick = 0; }
   else { rafId = requestAnimationFrame(tick); }
 
   var head = drawMark(shown);
@@ -235,7 +274,7 @@ applyHeroMode();
 
 /* ---------- reduced motion, live, in both directions ---------- */
 function pinToFinalStates() {
-  document.querySelectorAll('.rev,.stagger,.rule').forEach(function (el) {
+  document.querySelectorAll('.rev,.stagger,.rule,.steps').forEach(function (el) {
     el.classList.add('in', 'done');
   });
   document.querySelectorAll('[data-count]').forEach(function (el) {
@@ -327,7 +366,7 @@ if ('IntersectionObserver' in window) {
       if (counter) countUp(counter);
     });
   }, { rootMargin: '0px 0px -12%' });
-  document.querySelectorAll('.rev,.stagger,.rule').forEach(function (el) { io.observe(el); });
+  document.querySelectorAll('.rev,.stagger,.rule,.steps').forEach(function (el) { io.observe(el); });
 } else {
   pinToFinalStates();
 }
@@ -453,7 +492,11 @@ document.addEventListener('visibilitychange', function () {
         return r.name !== 'Shaj2x' && r.name !== 'Shaj2x.github.io';
       }).slice(0, 6);
 
-      if (!list.length) { host.innerHTML = '<div class="repo-err"><p>No public repositories right now.</p></div>'; return; }
+      if (!list.length) {
+        host.innerHTML = '<div class="repo-err"><p>No public repositories right now.</p></div>';
+        requestAnimationFrame(function () { host.classList.add('ready', 'done'); });
+        return;
+      }
 
       host.innerHTML = list.map(function (r) {
         var demo = DEMOS[r.name];
@@ -469,12 +512,71 @@ document.addEventListener('visibilitychange', function () {
           '</p></article>';
       }).join('');
       host.setAttribute('aria-busy', 'false');
+      /* next frame, so the browser has the cards laid out before they move */
+      requestAnimationFrame(function () {
+        host.classList.add('ready');
+        setTimeout(function () { host.classList.add('done'); }, 700);
+      });
     })
     .catch(function () {
       host.setAttribute('aria-busy', 'false');
       host.innerHTML = '<div class="repo-err"><p>GitHub did not answer, which is usually a rate limit. ' +
         '<a class="more" href="https://github.com/Shaj2x?tab=repositories" target="_blank" rel="noopener noreferrer">Browse the repositories directly</a></p></div>';
+      /* the error card enters the same way the cards would have, so a failed
+         fetch does not read as a different kind of page */
+      requestAnimationFrame(function () { host.classList.add('ready', 'done'); });
     });
+})();
+
+/* ---------- FAQ: an accordion that does not snap ----------
+   <details> toggles instantly by default, which is the most obviously
+   unfinished moment on the page. Height is measured in JS rather than
+   animated to auto, and kept short because it costs layout every frame. */
+(function faq() {
+  var items = [].slice.call(document.querySelectorAll('.faq details'));
+  if (!items.length) return;
+  var DUR = 200;
+
+  items.forEach(function (d) {
+    var ans = d.querySelector('.ans');
+    var inner = d.querySelector('.ans-in');
+    if (!ans || !inner) return;
+    var busy = false;
+
+    function setH(v) { ans.style.height = v; }
+
+    d.addEventListener('toggle', function () {
+      /* keep the DOM state and the animation in step if something else
+         toggles it (a hash link, find-in-page opening a match) */
+      if (busy) return;
+      setH(d.open ? inner.offsetHeight + 'px' : '0px');
+      if (d.open) setTimeout(function () { if (d.open) setH('auto'); }, DUR);
+    });
+
+    d.querySelector('summary').addEventListener('click', function (e) {
+      e.preventDefault();
+      if (busy) return;
+      busy = true;
+
+      if (reduceMQ.matches) {            /* gentler: no height animation */
+        d.open = !d.open;
+        setH(d.open ? 'auto' : '0px');
+        busy = false;
+        return;
+      }
+
+      if (!d.open) {
+        d.open = true;
+        setH('0px');
+        requestAnimationFrame(function () { setH(inner.offsetHeight + 'px'); });
+        setTimeout(function () { setH('auto'); busy = false; }, DUR);
+      } else {
+        setH(inner.offsetHeight + 'px');
+        requestAnimationFrame(function () { setH('0px'); });
+        setTimeout(function () { d.open = false; busy = false; }, DUR);
+      }
+    });
+  });
 })();
 
 /* ---------- the form ----------

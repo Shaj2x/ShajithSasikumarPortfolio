@@ -25,9 +25,16 @@
   --body:'Instrument Sans',system-ui,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,monospace;
 
-  /* two curves, used everywhere. nothing snaps. */
-  --ease:cubic-bezier(.22,1,.36,1);
-  --ease-soft:cubic-bezier(.4,0,.2,1);
+  /* motion tokens. every duration and curve on the site comes from here. */
+  --ease-out:cubic-bezier(0.23, 1, 0.32, 1);        /* entering and exiting */
+  --ease-in-out:cubic-bezier(0.77, 0, 0.175, 1);    /* moving on screen */
+  --ease:var(--ease-out);                            /* legacy alias */
+  --ease-soft:var(--ease-in-out);
+
+  --t-press:160ms;      /* button feedback */
+  --t-ui:200ms;         /* accordions, small state changes */
+  --t-enter:300ms;      /* items entering a group */
+  --t-reveal:600ms;     /* marketing scroll reveal */
 
   /* three layer shadow so type survives moving footage */
   --tshadow:0 1px 2px rgba(5,8,12,.95),0 3px 12px rgba(5,8,12,.78),0 10px 44px rgba(5,8,12,.8);
@@ -203,17 +210,18 @@ a{color:inherit;text-decoration:none}
   text-transform:uppercase;color:var(--text-dim)}
 
 /* ---------- entrances for the page below the hero ---------- */
-.rev{opacity:0;transform:translateY(22px);
-  transition:opacity 1s var(--ease),transform 1s var(--ease)}
-.rev.in{opacity:1;transform:none}
-.stagger > *{opacity:0;transform:translateY(18px);
-  transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.rev{clip-path:inset(0 0 100% 0);transition:clip-path var(--t-reveal) var(--ease-in-out)}
+.rev.in{clip-path:inset(0 0 0 0)}
+
+/* group entrance: 60ms steps, opacity and transform only */
+.stagger > *{opacity:0;transform:translateY(10px);
+  transition:opacity var(--t-enter) var(--ease-out),transform var(--t-enter) var(--ease-out)}
 .stagger.in > *{opacity:1;transform:none}
-.stagger.in > *:nth-child(2){transition-delay:.08s}
-.stagger.in > *:nth-child(3){transition-delay:.16s}
-.stagger.in > *:nth-child(4){transition-delay:.24s}
-.stagger.in > *:nth-child(5){transition-delay:.32s}
-.stagger.in > *:nth-child(6){transition-delay:.4s}
+.stagger.in > *:nth-child(2){transition-delay:60ms}
+.stagger.in > *:nth-child(3){transition-delay:120ms}
+.stagger.in > *:nth-child(4){transition-delay:180ms}
+.stagger.in > *:nth-child(5){transition-delay:240ms}
+.stagger.in > *:nth-child(6){transition-delay:300ms}
 /* retire the delays once in, at matching specificity, so hovers never lag */
 .stagger.done > *:nth-child(n){transition-delay:0s}
 
@@ -300,7 +308,10 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .repo .meta{margin-top:16px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--text-dim);display:flex;gap:16px;flex-wrap:wrap}
 .repo .meta .live{color:var(--accent)}
-.repo-err{background:var(--canvas);padding:26px;border-left:2px solid var(--accent)}
+.repo-err{background:var(--canvas);padding:26px;border-left:2px solid var(--accent);
+  opacity:0;transform:translateY(10px);
+  transition:opacity var(--t-enter) var(--ease-out),transform var(--t-enter) var(--ease-out)}
+.repos.ready .repo-err{opacity:1;transform:none}
 .more{display:inline-block;margin-top:34px;font-family:var(--mono);font-size:11.5px;
   letter-spacing:.08em;text-transform:uppercase;color:var(--accent);
   border-bottom:1px solid var(--accent-muted);padding-bottom:4px;
@@ -318,7 +329,8 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .faq summary::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:1.1rem}
 .faq details[open] summary::after{content:"\2212"}
 .faq summary:hover{color:var(--accent)}
-.faq p{padding:0 0 26px;color:var(--text-secondary);max-width:64ch;font-size:.97rem}
+.faq .ans-in{padding:0 0 26px}
+.faq p{margin:0;color:var(--text-secondary);max-width:64ch;font-size:.97rem}
 
 /* ---------- form ---------- */
 .form{margin-top:48px;max-width:620px;display:grid;gap:26px}
@@ -401,8 +413,8 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 
 .hero-mark{color:var(--text-primary)}
 .hero-mark .mk{
-  stroke-dasharray:var(--len,1200);
-  stroke-dashoffset:var(--off,1200);
+  stroke-dasharray:1200;      /* JS replaces both with the real path length */
+  stroke-dashoffset:1200;
   filter:drop-shadow(0 0 16px rgba(159,216,255,.7)) drop-shadow(0 0 52px rgba(159,216,255,.3));
 }
 
@@ -431,3 +443,78 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
   box-shadow:0 0 12px rgba(159,216,255,.5);
   transition:transform 1.6s var(--ease)}
 .rule.in::after{--draw:1}
+
+/* ============================================================
+   MOTION PASS
+   Each of these has one named job. Anything that could not be
+   named was not built.
+   ============================================================ */
+
+/* Button press. Purpose: feedback, the interface heard you.
+   scale() takes the label with it, which is what sells it as physical. */
+.btn,.hold,.nav-cta{transition:
+  background-color var(--t-ui) var(--ease-out),
+  border-color var(--t-ui) var(--ease-out),
+  color var(--t-ui) var(--ease-out),
+  transform var(--t-press) var(--ease-out)}
+.btn:active,.nav-cta:active{transform:scale(.97)}
+.btn:hover{transform:none}
+
+/* hover motion is gated: touch fires a false hover on tap */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover{transform:translateY(-1px)}
+}
+
+/* FAQ. Purpose: preventing a jarring change. Height is the one property
+   allowed to animate here because there is no transform equivalent, so it
+   stays short: layout runs on every frame of it. */
+.faq details{overflow:hidden}
+.faq .ans{overflow:hidden;height:0;opacity:0;
+  transition:height var(--t-ui) var(--ease-out),opacity var(--t-ui) var(--ease-out)}
+.faq details[open] .ans{opacity:1}
+.faq summary::after{transition:transform var(--t-ui) var(--ease-out)}
+.faq details[open] summary::after{transform:rotate(90deg)}
+
+/* Repo cards. Purpose: preventing a jarring change. They arrive after a
+   network call, so without this they teleport in mid-read. */
+.repo{opacity:0;transform:translateY(10px);
+  transition:opacity var(--t-enter) var(--ease-out),transform var(--t-enter) var(--ease-out),
+             border-color var(--t-ui) var(--ease-out)}
+.repos.ready .repo{opacity:1;transform:none}
+.repos.ready .repo:nth-child(2){transition-delay:60ms}
+.repos.ready .repo:nth-child(3){transition-delay:120ms}
+.repos.ready .repo:nth-child(4){transition-delay:180ms}
+.repos.ready .repo:nth-child(5){transition-delay:240ms}
+.repos.ready .repo:nth-child(6){transition-delay:300ms}
+.repos.done .repo:nth-child(n){transition-delay:0s}
+
+/* Process. Purpose: explanation. The four steps are a real sequence, so a
+   line draws through them as they enter, showing the order rather than
+   decorating it. */
+.steps{position:relative}
+.steps::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;
+  background:linear-gradient(180deg,var(--accent),rgba(159,216,255,.15));
+  transform:scaleY(var(--run,0));transform-origin:top center;
+  transition:transform 900ms var(--ease-in-out);
+  box-shadow:0 0 12px rgba(159,216,255,.35)}
+.steps.in::before{--run:1}
+@media (min-width:760px){
+  .steps::before{width:100%;height:2px;transform:scaleX(var(--run,0));transform-origin:left center}
+}
+
+/* Row feedback. Purpose: feedback on something clickable. Gated, and small. */
+@media (hover:hover) and (pointer:fine){
+  .offer{transition:background-color var(--t-ui) var(--ease-out)}
+  .offer:hover{background:var(--panel)}
+  .repo:hover{border-color:var(--accent-muted)}
+  .rec-list li{transition:border-color var(--t-ui) var(--ease-out)}
+  .rec-list li:hover{border-bottom-color:var(--accent-muted)}
+}
+
+/* Reduced motion: gentler, not zero. Opacity survives, movement does not. */
+@media (prefers-reduced-motion:reduce){
+  .rev{clip-path:none !important}
+  .steps::before{transform:none !important}
+  .faq .ans{transition:none}
+  .btn:active,.nav-cta:active{transform:none}
+}
