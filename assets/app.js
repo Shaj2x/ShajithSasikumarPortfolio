@@ -14,7 +14,6 @@ var marks   = [].slice.call(document.querySelectorAll('.hero-mark .mk'));
 var halo    = document.getElementById('mark-halo');
 var headOut = document.getElementById('head');
 var headIn  = document.getElementById('head-core');
-var bandEls = [].slice.call(document.querySelectorAll('.band'));
 
 /* ---------- the five static hero gates ----------
    Duplicated character for character in style.css. Change one, change both. */
@@ -32,54 +31,6 @@ var smoothstep = function (p, e0, e1) {
   var t = clamp((p - e0) / (e1 - e0), 0, 1);
   return t * t * (3 - 2 * t);
 };
-
-/* ---------- band model ---------- */
-var bands = bandEls.map(function (el) {
-  var r = (el.dataset.range || '0,1').split(',');
-  return { el: el, a: parseFloat(r[0]), b: parseFloat(r[1]),
-           ramp: el.dataset.ramp ? parseFloat(el.dataset.ramp) : null,
-           op: -1, k: -1 };
-});
-
-/* ---------- seeded split, identical on every load ---------- */
-function rng(seed) {
-  var s = seed >>> 0;
-  return function () { return (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; };
-}
-
-function splitText(el, entrance) {
-  if (el.dataset.split) return;
-  el.dataset.split = '1';
-  var text = el.textContent;
-  var words = text.split(' ');
-  var rand = rng(text.length * 7919 + words.length);
-  var spread = parseFloat(el.dataset.spread || '0.5');
-
-  var hidden = document.createElement('span');
-  hidden.className = 'vh';
-  hidden.textContent = text;
-
-  var visual = document.createElement('span');
-  visual.setAttribute('aria-hidden', 'true');
-  visual.className = 'e-' + entrance;
-
-  words.forEach(function (word, i) {
-    var w = document.createElement('span');
-    w.className = 'w';
-    w.textContent = word + (i < words.length - 1 ? ' ' : '');
-    w.style.setProperty('--th', (i / Math.max(1, words.length) * spread + rand() * 0.05).toFixed(3));
-    visual.appendChild(w);
-  });
-
-  el.textContent = '';
-  el.appendChild(hidden);
-  el.appendChild(visual);
-}
-
-bandEls.forEach(function (el) {
-  var target = el.querySelector('.split');
-  if (target) splitText(target, el.dataset.entrance || 'rise');
-});
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
@@ -237,117 +188,174 @@ function drawMark(p, dt) {
   return hx === null ? null : { x: hx, y: hy };
 }
 
-/* ---------- captions, written only on change ---------- */
-var loadK = 0, loadStart = 0;
+/* ---------- the intro: one played transition ----------
+   The hero used to be 540vh of scrub, with the mark's progress tied to the
+   scroll position, so getting past the intro meant scrolling five and a half
+   screens. It is one screen now and the draw is a timeline that scroll
+   triggers rather than drives: scroll once and the whole thing plays.
 
-function updateCaptions(p) {
-  for (var i = 0; i < bands.length; i++) {
-    var b = bands[i];
-    var f = Math.min(0.02, (b.b - b.a) / 3);
-    var easeIn  = (i === 0) ? 1 : smoothstep(p, b.a, b.a + f);
-    var easeOut = (i === bands.length - 1) ? 1 : (1 - smoothstep(p, b.b - f, b.b));
-    var op = easeIn * easeOut;
+   It never traps anyone. The page is held only for the length of the play,
+   any further input runs the remainder at speed rather than cutting it off
+   mid stroke, and anyone who lands partway down the page gets the finished
+   state with no hold at all. */
+var DRAW_MS  = 2300;
+var heroCopy = document.getElementById('hero-copy');
+var heroCue  = document.getElementById('hero-cue');
 
-    var ramp = b.ramp || Math.min(0.025, (b.b - b.a) * 0.35);
-    var k = clamp((p - b.a) / ramp, 0, 1);
-    if (i === 0) k = Math.max(k, loadK);
+var intro = 'idle';                 /* idle | playing | done */
+var elapsed = 0, rate = 1, lit = false;
+var rafId = null, lastTick = 0, autoTimer = null;
 
-    if (Math.abs(op - b.op) > 0.004) { b.op = op; b.el.style.opacity = op.toFixed(3); }
-    if (Math.abs(k - b.k) > 0.008)  { b.k = k;  b.el.style.setProperty('--k', k.toFixed(3)); }
-  }
+/* Mostly linear, so the stroke reads as one confident movement, with just
+   enough ease at each end that it starts and stops rather than snapping. */
+function introEase(t) {
+  var s = t * t * t * (t * (t * 6 - 15) + 10);
+  return t * 0.3 + s * 0.7;
 }
 
-/* ---------- progress through the pinned hero ---------- */
-function heroProgress() {
-  if (!hero) return 0;
-  var rect = hero.getBoundingClientRect();
-  var range = hero.offsetHeight - window.innerHeight;
-  if (range <= 0) return 0;
-  return clamp(-rect.top / range, 0, 1);
-}
-
-/* ---------- the rAF loop that rests ---------- */
-var target = 0, shown = 0, vel = 0, rafId = null, lastTick = 0, heroOnScreen = true;
-
-/* A spring, not eased interpolation. Exponential smoothing always trails the
-   scroll and crawls to a stop, which reads as lag. A spring carries velocity,
-   so reversing the scroll mid-stroke turns the line around with its own
-   momentum instead of snapping direction.
-   damping / (2 * sqrt(stiffness)) = 37 / 36.88 = 1.003, so it is critically
-   damped: no overshoot. A logo that sprang past itself and un-drew would be
-   a bug, not a flourish. */
-var K = 340, C = 37;
-
-function tick(now) {
-  var dt = Math.min(64, now - (lastTick || now)) / 1000;   /* seconds, clamped */
+function frame(now) {
+  var dt = Math.min(64, now - (lastTick || now)) / 1000;
   lastTick = now;
+  elapsed += dt * 1000 * rate;
 
-  /* substep so a long frame cannot make the spring explode */
-  var steps = Math.max(1, Math.ceil(dt / 0.0084));
-  var h = dt / steps;
-  for (var st = 0; st < steps; st++) {
-    vel += (-K * (shown - target) - C * vel) * h;
-    shown += vel * h;
+  var raw = clamp(elapsed / DRAW_MS, 0, 1);
+  var head = drawMark(introEase(raw), dt);
+  if (window.__fieldFocus) window.__fieldFocus(head, raw);
+
+  /* the words arrive while the line is still moving, not after it stops */
+  if (!lit && raw > 0.34 && heroCopy) { lit = true; heroCopy.classList.add('lit'); }
+
+  if (raw < 1) { rafId = requestAnimationFrame(frame); return; }
+  rafId = null; lastTick = 0;
+  endIntro();
+}
+
+/* The hold. Only ever for the length of the play, and only from the top. */
+function hold(on) {
+  document.documentElement.style.overflow = on ? 'hidden' : '';
+  document.body.style.overflow = on ? 'hidden' : '';
+}
+function swallow(e) { if (e.cancelable) e.preventDefault(); }
+
+function startIntro() {
+  if (intro !== 'idle') return;
+  /* Checked again here, not just when arming: a hash landing scrolls after
+     this script runs, so a page that looked like the top a moment ago may
+     already be somewhere else. Holding it then would freeze a visitor for
+     an intro they cannot even see. */
+  if (window.scrollY > 40) { settleIntro(); return; }
+  intro = 'playing';
+  clearTimeout(autoTimer);
+  if (heroCue) heroCue.classList.add('gone');
+  hold(true);
+  window.addEventListener('touchmove', swallow, { passive: false });
+  elapsed = 0; rate = 1; lit = false; lastTick = 0;
+  if (rafId === null) rafId = requestAnimationFrame(frame);
+}
+
+function endIntro() {
+  if (intro === 'done') return;
+  intro = 'done';
+  hold(false);
+  window.removeEventListener('touchmove', swallow);
+  window.removeEventListener('scroll', onIdleScroll);
+  releaseIntent();
+  if (heroCue) heroCue.classList.add('gone');
+  if (heroCopy) {
+    heroCopy.classList.add('lit');
+    setTimeout(function () { heroCopy.classList.add('done'); }, 700);
   }
-
-  if (loadK < 1 && loadStart) loadK = clamp((now - loadStart) / 900, 0, 1);
-
-  var settled = Math.abs(target - shown) < 0.0002 && Math.abs(vel) < 0.002 && loadK >= 1;
-  if (settled) { shown = target; vel = 0; rafId = null; lastTick = 0; }
-  else { rafId = requestAnimationFrame(tick); }
-
-  var head = drawMark(shown, dt);
-  updateCaptions(shown);
-  if (window.__fieldFocus) window.__fieldFocus(head, shown);
 }
 
-function onScroll() {
-  target = heroProgress();
-  if (rafId === null && heroOnScreen) { lastTick = 0; rafId = requestAnimationFrame(tick); }
+/* straight to the end, no play: a mid page landing, or a resize after */
+function settleIntro() {
+  clearTimeout(autoTimer);
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  elapsed = DRAW_MS;
+  drawMark(1, 0);
+  endIntro();
 }
 
-if (hero && 'IntersectionObserver' in window) {
-  new IntersectionObserver(function (es) {
-    heroOnScreen = es[0].isIntersecting;
-    if (heroOnScreen && rafId === null) { lastTick = 0; rafId = requestAnimationFrame(tick); }
-  }, { rootMargin: '10% 0px' }).observe(hero);
+/* One router for every way a visitor can say "go": before the play it
+   starts it, during the play it runs the rest at speed. */
+function onIntent(e) {
+  if (intro === 'idle') { swallow(e); startIntro(); }
+  else if (intro === 'playing') { swallow(e); rate = 7; }
+}
+var KEYS = { ' ': 1, PageDown: 1, ArrowDown: 1, End: 1, Enter: 1 };
+function onKey(e) {
+  if (intro === 'done') return;
+  if (e.key === 'Escape') { settleIntro(); return; }
+  if (KEYS[e.key]) onIntent(e);
+}
+function captureIntent() {
+  window.addEventListener('wheel', onIntent, { passive: false });
+  window.addEventListener('touchmove', onIntent, { passive: false });
+  window.addEventListener('keydown', onKey);
+  window.addEventListener('pointerdown', onIntent);
+}
+function releaseIntent() {
+  window.removeEventListener('wheel', onIntent);
+  window.removeEventListener('touchmove', onIntent);
+  window.removeEventListener('keydown', onKey);
+  window.removeEventListener('pointerdown', onIntent);
 }
 
 /* ---------- arm and disarm, live on all five gates ---------- */
-var heroArmed = false, scrubOn = false;
+var heroArmed = false, armed = false;
 
 function initHeroOnce() {
   if (heroArmed) return;
   heroArmed = true;
   measureMark();
-  loadStart = performance.now();
-  if (rafId === null) rafId = requestAnimationFrame(tick);
 }
 
-function enableScrub() {
-  if (scrubOn) return;
-  scrubOn = true;
+function armIntro() {
+  if (armed) return;
+  armed = true;
   initHeroOnce();
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', measureMark);
-  bands.forEach(function (b) { b.op = -1; b.k = -1; });
-  lastOff = []; lastHeadOp = -1; lastHeadX = -1; lastHeadR = -1; headSpeed = 0;
-  updateCaptions(heroProgress());
-  onScroll();
+  window.addEventListener('resize', onResize);
+
+  /* someone who arrives partway down the page, from a hash link or a
+     restored scroll position, has already missed the moment: give them the
+     finished mark rather than holding them still for it */
+  if (window.scrollY > 40) { settleIntro(); return; }
+
+  drawMark(0, 0);
+  captureIntent();
+  window.addEventListener('scroll', onIdleScroll, { passive: true });
+  /* the hash jump lands after this frame, so look again once it has */
+  requestAnimationFrame(onIdleScroll);
+  autoTimer = setTimeout(startIntro, 900);    /* it plays even if they wait */
 }
 
-function disableScrub() {
-  if (!scrubOn) return;
-  scrubOn = false;
-  window.removeEventListener('scroll', onScroll);
-  window.removeEventListener('resize', measureMark);
+/* Anything that moves the page while the intro is still waiting, a hash
+   landing or a restored scroll position, means the moment has passed. */
+function onIdleScroll() {
+  if (intro === 'idle' && window.scrollY > 40) settleIntro();
+}
+
+function onResize() {
+  measureMark();
+  if (intro === 'done') drawMark(1, 0);
+}
+
+function disarmIntro() {
+  if (!armed) return;
+  armed = false;
+  clearTimeout(autoTimer);
+  releaseIntent();
+  window.removeEventListener('scroll', onIdleScroll);
+  window.removeEventListener('resize', onResize);
+  window.removeEventListener('touchmove', swallow);
+  hold(false);
   if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
 }
 
 var MQLS = GATES.map(function (q) { return matchMedia(q); });
 function applyHeroMode() {
-  if (MQLS.some(function (m) { return m.matches; })) disableScrub();
-  else enableScrub();
+  if (MQLS.some(function (m) { return m.matches; })) disarmIntro();
+  else armIntro();
 }
 MQLS.forEach(function (m) {
   if (m.addEventListener) m.addEventListener('change', applyHeroMode);
@@ -894,14 +902,13 @@ document.addEventListener('visibilitychange', function () {
   var busy = false;
 
   function jump(el) {
+    /* Settle first, then move. The intro holds the page while it plays, so
+       jumping before releasing that hold would scroll nothing at all, and
+       it also leaves the mark finished rather than stranded half drawn
+       above a visitor who has moved on. */
+    if (typeof settleIntro === 'function') settleIntro();
     var y = el.getBoundingClientRect().top + window.scrollY;
     window.scrollTo({ top: y, behavior: 'instant' });
-    /* the hero is behind us now, so settle it rather than let the spring
-       animate through the whole mark while nobody is looking */
-    if (typeof target !== 'undefined') {
-      target = shown = heroProgress(); vel = 0;
-      drawMark(shown); updateCaptions(shown);
-    }
   }
 
   document.addEventListener('click', function (e) {
