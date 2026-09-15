@@ -537,35 +537,41 @@ document.addEventListener('visibilitychange', function () {
 })();
 
 /* ---------- the cursor streak ----------
-   A chain of points, each chasing the one in front of it, so the line lags
-   and whips rather than rigidly following. Same stroke language as the mark:
-   a thin filament of light, brightest at the head, gone by the tail.
+   Ink, not a tail. The first attempt was a chain of points each chasing the
+   one ahead, and a chain has a fixed length and straightens out the moment
+   you move quickly, so it read as a rigid stick being dragged around. This
+   keeps the path the pointer actually travelled and lets each sample fade
+   out with age, which is what makes a line look drawn: it curves where you
+   curved, it runs long when you move fast and stays short when you do not,
+   and it tapers to nothing at both ends instead of stopping dead.
 
    Three things keep it honest. It only exists on a fine pointer that can
    hover, because a finger has no cursor to trail. Reduced motion switches it
-   off in CSS, and the module never starts. And the loop stops the moment the
-   tail catches the head, so an idle page runs no animation frames at all. */
+   off in CSS, and the module never starts. And the loop stops as soon as the
+   last sample has aged out, so an idle page runs no animation frames. */
 (function streak() {
   var cv = document.getElementById('streak');
   if (!cv || !cv.getContext) return;
 
-  var fine = matchMedia('(hover: hover) and (pointer: fine)');
+  var fine  = matchMedia('(hover: hover) and (pointer: fine)');
   var still = matchMedia('(prefers-reduced-motion: reduce)');
   var ctx = cv.getContext('2d');
 
-  var N = 32;                       /* points in the chain */
-  var xs = new Float32Array(N), ys = new Float32Array(N);
-  var mx = 0, my = 0, armed = false, raf = null, last = 0, dpr = 1, idle = 0;
-  var HEAD = 0.55, BODY = 0.25;     /* how hard each point chases the one ahead */
+  var LIFE = 0.46;        /* seconds a sample survives: the length of the stroke */
+  var WIDE = 5.0;         /* widest the nib ever gets */
+  var MINSTEP = 0.7;      /* px between samples, so a still pointer records nothing */
 
-  var rgb = '159,216,255', chan = [159, 216, 255];
+  var pts = [];           /* {x, y, t} along the path actually travelled */
+  var mx = 0, my = 0, lx = 0, ly = 0;
+  var armed = false, raf = null, last = 0, dpr = 1;
+  var rgb = '159,216,255';
+
   function readAccent() {
     var v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     var m = /^#([0-9a-f]{6})$/i.exec(v);
     if (m) {
       var n = parseInt(m[1], 16);
-      chan = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-      rgb = chan.join(',');
+      rgb = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
     }
   }
 
@@ -576,79 +582,123 @@ document.addEventListener('visibilitychange', function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
+  /* Catmull-Rom through the recorded samples. Raw pointer events arrive at
+     uneven spacing and a polyline through them shows every one of its corners;
+     interpolating turns the same samples into a curve. */
+  function spline(p0, p1, p2, p3, u) {
+    var u2 = u * u, u3 = u2 * u;
+    return [
+      0.5 * ((2 * p1.x) + (-p0.x + p2.x) * u +
+             (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 +
+             (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * u3),
+      0.5 * ((2 * p1.y) + (-p0.y + p2.y) * u +
+             (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 +
+             (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3)
+    ];
+  }
 
-    /* One tapered ribbon, filled, rather than a stroke per segment. Stroking
-       segments individually puts a round cap at every joint, and those caps
-       overlap into a row of bright beads. A single filled outline has no
-       joints to bead. */
-    var W = [], i;
-    for (i = 0; i < N; i++) {
-      var t = 1 - i / N;
-      W.push(0.35 + 3.2 * Math.pow(t, 0.75));
+  function build(now) {
+    var n = pts.length, out = [];
+    if (n < 2) return out;
+    for (var i = 0; i < n - 1; i++) {
+      var p0 = pts[i > 0 ? i - 1 : 0], p1 = pts[i], p2 = pts[i + 1];
+      var p3 = pts[i + 2 < n ? i + 2 : n - 1];
+      var seg = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      var steps = Math.max(1, Math.min(8, Math.round(seg / 3)));
+      for (var s = 0; s < steps; s++) {
+        var u = s / steps;
+        var q = spline(p0, p1, p2, p3, u);
+        var t = p1.t + (p2.t - p1.t) * u;
+        out.push({ x: q[0], y: q[1],
+                   a: Math.min(1, Math.max(0, (now - t) / LIFE)),   /* 0 nib, 1 gone */
+                   v: seg / Math.max(1e-3, p2.t - p1.t) });
+      }
+    }
+    out.push({ x: pts[n - 1].x, y: pts[n - 1].y, a: 0, v: out.length ? out[out.length - 1].v : 0 });
+    return out;
+  }
+
+  function draw(now) {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    var P = build(now);
+    var n = P.length;
+    if (n < 3) return;
+
+    /* Width: widest at the nib, to nothing at the tail, and thinner the
+       faster it was travelling, the way a real stroke lays down less ink
+       when it is moving. The last few samples ease down too, so the head
+       reads as a nib rather than a cut end. */
+    var W = new Array(n);
+    for (var i = 0; i < n; i++) {
+      var age = 1 - P[i].a;
+      var fast = 1 / (1 + P[i].v / 1400);
+      var cap  = Math.min(1, (n - 1 - i) / 3 * 0.55 + 0.45);
+      W[i] = WIDE * Math.pow(age, 0.7) * (0.55 + 0.45 * fast) * cap;
     }
 
     ctx.beginPath();
-    var first = true;
-    for (i = 0; i < N; i++) {                 /* down one edge */
-      var n = normal(i);
-      var x = xs[i] + n[0] * W[i], y = ys[i] + n[1] * W[i];
-      if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    for (i = 0; i < n; i++) {                       /* down one edge */
+      var d = norm(P, i);
+      var x = P[i].x + d[0] * W[i], y = P[i].y + d[1] * W[i];
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
-    for (i = N - 1; i >= 0; i--) {            /* and back up the other */
-      var m = normal(i);
-      ctx.lineTo(xs[i] - m[0] * W[i], ys[i] - m[1] * W[i]);
+    for (i = n - 1; i >= 0; i--) {                  /* and back up the other */
+      var e = norm(P, i);
+      ctx.lineTo(P[i].x - e[0] * W[i], P[i].y - e[1] * W[i]);
     }
     ctx.closePath();
 
-    /* white at the nib cooling to the accent and out, the same language as
+    /* white at the nib, cooling to the accent and out: the same language as
        the drawing head on the mark */
-    var grad = ctx.createLinearGradient(xs[0], ys[0], xs[N - 1], ys[N - 1]);
-    grad.addColorStop(0,    'rgba(245,251,255,0.95)');
-    grad.addColorStop(0.18, 'rgba(' + rgb + ',0.72)');
-    grad.addColorStop(1,    'rgba(' + rgb + ',0)');
-    ctx.fillStyle = grad;
+    var g = ctx.createLinearGradient(P[n - 1].x, P[n - 1].y, P[0].x, P[0].y);
+    g.addColorStop(0,    'rgba(246,252,255,0.92)');
+    g.addColorStop(0.22, 'rgba(' + rgb + ',0.66)');
+    g.addColorStop(1,    'rgba(' + rgb + ',0)');
+    ctx.fillStyle = g;
     ctx.fill();
 
-    ctx.shadowColor = 'rgba(' + rgb + ',0.9)';
-    ctx.shadowBlur = 11;
-    ctx.fillStyle = 'rgba(240,249,255,0.95)';
-    ctx.beginPath(); ctx.arc(xs[0], ys[0], 2.2, 0, 6.2832); ctx.fill();
+    /* the nib itself, rounding off the leading end */
+    ctx.shadowColor = 'rgba(' + rgb + ',0.85)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(244,251,255,0.92)';
+    ctx.beginPath();
+    ctx.arc(P[n - 1].x, P[n - 1].y, Math.max(1.1, W[n - 1] * 0.92), 0, 6.2832);
+    ctx.fill();
     ctx.shadowBlur = 0;
   }
 
-  /* unit normal at point i, from the direction of its neighbours */
-  function normal(i) {
-    var a = Math.max(0, i - 1), b = Math.min(N - 1, i + 1);
-    var dx = xs[b] - xs[a], dy = ys[b] - ys[a];
-    var L = Math.hypot(dx, dy);
+  /* unit normal at i, from the direction of its neighbours */
+  function norm(P, i) {
+    var a = P[i > 0 ? i - 1 : 0], b = P[i + 1 < P.length ? i + 1 : P.length - 1];
+    var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
     if (L < 1e-4) return [0, 0];
     return [-dy / L, dx / L];
   }
 
-  function tick(now) {
-    var dt = Math.min(0.064, (now - (last || now)) / 1000);
+  function tick(ms) {
+    var now = ms / 1000;
+    var dt = Math.min(0.064, now - (last || now));
     last = now;
-    /* frame rate independent: the same whip at 60Hz and at 144Hz */
-    var kh = 1 - Math.pow(1 - HEAD, dt * 60);
-    /* once the cursor stops the tail retracts rather than drifting in: the
-       line snaps shut, and the loop gets to rest inside a second */
-    idle += dt;
-    var kb = 1 - Math.pow(1 - Math.min(0.8, BODY * (1 + idle * 6)), dt * 60);
 
-    xs[0] += (mx - xs[0]) * kh;
-    ys[0] += (my - ys[0]) * kh;
-    var spread = Math.abs(mx - xs[0]) + Math.abs(my - ys[0]);
-    for (var i = 1; i < N; i++) {
-      xs[i] += (xs[i - 1] - xs[i]) * kb;
-      ys[i] += (ys[i - 1] - ys[i]) * kb;
-      spread += Math.abs(xs[i - 1] - xs[i]) + Math.abs(ys[i - 1] - ys[i]);
-    }
+    /* a lead point eases toward the cursor before anything is recorded, so
+       the jitter in raw pointer samples never reaches the line */
+    var k = 1 - Math.pow(1 - 0.5, dt * 60);
+    lx += (mx - lx) * k;
+    ly += (my - ly) * k;
 
-    draw();
+    var tip = pts[pts.length - 1];
+    if (!tip || Math.hypot(lx - tip.x, ly - tip.y) >= MINSTEP) pts.push({ x: lx, y: ly, t: now });
 
-    if (spread < N * 0.02) {        /* the tail has caught up: nothing to animate */
+    while (pts.length && now - pts[0].t > LIFE) pts.shift();   /* ink dries from the tail */
+
+    draw(now);
+
+    /* Rest only once the ink has fully dried AND the lead has caught the
+       cursor. Testing pts.length alone stopped the loop on its very first
+       frame, when the history held a single sample and had not had a chance
+       to grow. */
+    var live = pts.length > 0 || Math.hypot(mx - lx, my - ly) > 0.5;
+    if (!live) {
       ctx.clearRect(0, 0, innerWidth, innerHeight);
       raf = null; last = 0;
       return;
@@ -656,20 +706,13 @@ document.addEventListener('visibilitychange', function () {
     raf = requestAnimationFrame(tick);
   }
 
-  function wake() {
-    if (raf === null) { last = 0; raf = requestAnimationFrame(tick); }
-  }
-
   function onMove(e) {
     if (e.pointerType && e.pointerType !== 'mouse') return;
     /* a live game board owns the pointer, and the ball is the thing to watch */
     if (e.target && e.target.closest && e.target.closest('.game-frame')) return;
-    mx = e.clientX; my = e.clientY; idle = 0;
-    if (!armed) {                   /* start the chain where the cursor is, not at 0,0 */
-      armed = true;
-      for (var i = 0; i < N; i++) { xs[i] = mx; ys[i] = my; }
-    }
-    wake();
+    mx = e.clientX; my = e.clientY;
+    if (!armed) { armed = true; lx = mx; ly = my; }
+    if (raf === null) { last = 0; raf = requestAnimationFrame(tick); }
   }
 
   function start() {
@@ -678,7 +721,10 @@ document.addEventListener('visibilitychange', function () {
     addEventListener('pointermove', onMove, { passive: true });
     addEventListener('resize', size);
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden && raf !== null) { cancelAnimationFrame(raf); raf = null; }
+      if (document.hidden && raf !== null) {
+        cancelAnimationFrame(raf); raf = null; pts.length = 0;
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+      }
     });
   }
 
