@@ -26,6 +26,33 @@ var GATES = [
 ];
 var reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
 
+/* ---------- theme ----------
+   The stylesheet owns the palette. Anything drawn on a canvas cannot read a
+   CSS variable directly, so the values are mirrored here once and re-read
+   whenever the theme changes, and every canvas repaints off the same source.
+   glow is the theme's bloom budget: a luminous line on near black becomes
+   ink on paper, where the same halo would look like a printing fault. */
+var theme = { accent: '159,216,255', ink: '238,242,246', glow: 1, dust: 1 };
+var themeWatchers = [];
+
+function readTheme() {
+  var cs = getComputedStyle(document.documentElement);
+  var g = function (n, f) { return (cs.getPropertyValue(n) || '').trim() || f; };
+  theme.accent = g('--accent-rgb', '159,216,255');
+  theme.ink    = g('--ink-rgb', '238,242,246');
+  theme.glow   = parseFloat(g('--glow', '1'));
+  if (!(theme.glow > 0)) theme.glow = 1;
+  /* drifting dust is a dark room effect; on paper it reads as dirt */
+  theme.dust = 0.25 + 0.75 * theme.glow;
+}
+
+function onTheme(fn) { themeWatchers.push(fn); }
+function themeChanged() {
+  readTheme();
+  for (var i = 0; i < themeWatchers.length; i++) themeWatchers[i]();
+}
+readTheme();
+
 var clamp = function (v, lo, hi) { return Math.min(hi, Math.max(lo, v)); };
 var smoothstep = function (p, e0, e1) {
   var t = clamp((p - e0) / (e1 - e0), 0, 1);
@@ -479,8 +506,8 @@ reduceMQ.addEventListener('change', function (e) {
 
     if (focus.a > 0.01 && focus.x > -1) {
       var g = ctx.createRadialGradient(focus.x, focus.y, 0, focus.x, focus.y, Math.max(w, h) * 0.34);
-      g.addColorStop(0, 'rgba(159,216,255,' + (0.13 * focus.a).toFixed(3) + ')');
-      g.addColorStop(1, 'rgba(159,216,255,0)');
+      g.addColorStop(0, 'rgba(' + theme.accent + ',' + (0.13 * focus.a * theme.glow).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + theme.accent + ',0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     }
@@ -491,7 +518,7 @@ reduceMQ.addEventListener('change', function (e) {
       if (d.y < -4) { d.y = h + 4; d.x = Math.random() * w; }
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.r * d.z, 0, 6.2832);
-      ctx.fillStyle = 'rgba(159,216,255,' + (d.o * d.z).toFixed(3) + ')';
+      ctx.fillStyle = 'rgba(' + theme.accent + ',' + (d.o * d.z * theme.dust).toFixed(3) + ')';
       ctx.fill();
     }
     raf = requestAnimationFrame(draw);
@@ -615,6 +642,68 @@ document.addEventListener('visibilitychange', function () {
   reduceMQ.addEventListener('change', function (e) { if (e.matches) pinLine(); });
 })();
 
+/* ---------- the appearance control ----------
+   Mode is three-state: whatever the system says, until the visitor says
+   otherwise, and then that choice sticks. Accent is one of five. Both are
+   attributes on the root element, so the stylesheet does the work and this
+   only has to remember the decision and tell the canvases to repaint. */
+(function theming() {
+  var root = document.documentElement;
+  var modeBtn = document.getElementById('mode');
+  var sws = [].slice.call(document.querySelectorAll('.sw'));
+  var sysLight = matchMedia('(prefers-color-scheme: light)');
+  var GROUND = { dark: '#0B0D10', light: '#F5F6F9' };
+
+  function stored(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* what is actually on screen right now, whatever the reason */
+  function liveMode() {
+    var set = root.getAttribute('data-theme');
+    if (set === 'light' || set === 'dark') return set;
+    return sysLight.matches ? 'light' : 'dark';
+  }
+
+  function paint() {
+    var mode = liveMode();
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', GROUND[mode]);
+    if (modeBtn) {
+      modeBtn.setAttribute('aria-label',
+        mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    var accent = root.getAttribute('data-accent') || 'signal';
+    sws.forEach(function (s) {
+      s.setAttribute('aria-checked', s.dataset.accent === accent ? 'true' : 'false');
+    });
+    themeChanged();
+  }
+
+  if (modeBtn) modeBtn.addEventListener('click', function () {
+    var next = liveMode() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    store('ss-mode', next);
+    paint();
+  });
+
+  sws.forEach(function (s) {
+    s.addEventListener('click', function () {
+      var a = s.dataset.accent;
+      if (a === 'signal') root.removeAttribute('data-accent');
+      else root.setAttribute('data-accent', a);
+      store('ss-accent', a);
+      paint();
+    });
+  });
+
+  /* follow the system only while the visitor has not chosen for themselves */
+  sysLight.addEventListener('change', function () {
+    if (!root.getAttribute('data-theme')) paint();
+  });
+
+  paint();
+})();
+
 /* ---------- the cursor streak ----------
    Ink, not a tail. The first attempt was a chain of points each chasing the
    one ahead, and a chain has a fixed length and straightens out the moment
@@ -643,16 +732,9 @@ document.addEventListener('visibilitychange', function () {
   var pts = [];           /* {x, y, t} along the path actually travelled */
   var mx = 0, my = 0, lx = 0, ly = 0;
   var armed = false, raf = null, last = 0, dpr = 1;
-  var rgb = '159,216,255';
-
-  function readAccent() {
-    var v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-    var m = /^#([0-9a-f]{6})$/i.exec(v);
-    if (m) {
-      var n = parseInt(m[1], 16);
-      rgb = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
-    }
-  }
+  /* one shared source for the palette; this used to parse --accent as hex,
+     which stopped being a hex the moment the themes arrived */
+  var rgb = theme.accent;
 
   function size() {
     dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -730,7 +812,7 @@ document.addEventListener('visibilitychange', function () {
     /* white at the nib, cooling to the accent and out: the same language as
        the drawing head on the mark */
     var g = ctx.createLinearGradient(P[n - 1].x, P[n - 1].y, P[0].x, P[0].y);
-    g.addColorStop(0,    'rgba(246,252,255,0.92)');
+    g.addColorStop(0,    'rgba(' + theme.ink + ',0.92)');
     g.addColorStop(0.22, 'rgba(' + rgb + ',0.66)');
     g.addColorStop(1,    'rgba(' + rgb + ',0)');
     ctx.fillStyle = g;
@@ -739,7 +821,7 @@ document.addEventListener('visibilitychange', function () {
     /* the nib itself, rounding off the leading end */
     ctx.shadowColor = 'rgba(' + rgb + ',0.85)';
     ctx.shadowBlur = 10;
-    ctx.fillStyle = 'rgba(244,251,255,0.92)';
+    ctx.fillStyle = 'rgba(' + theme.ink + ',0.92)';
     ctx.beginPath();
     ctx.arc(P[n - 1].x, P[n - 1].y, Math.max(1.1, W[n - 1] * 0.92), 0, 6.2832);
     ctx.fill();
@@ -796,7 +878,7 @@ document.addEventListener('visibilitychange', function () {
 
   function start() {
     if (!fine.matches || still.matches) return;
-    readAccent(); size();
+    rgb = theme.accent; size();
     addEventListener('pointermove', onMove, { passive: true });
     addEventListener('resize', size);
     document.addEventListener('visibilitychange', function () {
@@ -809,6 +891,7 @@ document.addEventListener('visibilitychange', function () {
 
   start();
   fine.addEventListener('change', function () { if (fine.matches) start(); });
+  onTheme(function () { rgb = theme.accent; });
 })();
 
 /* ---------- the work list ----------
@@ -1063,7 +1146,7 @@ document.addEventListener('visibilitychange', function () {
      player's attention away, switching tabs, scrolling past, hiding the
      window, goes through pause() so a game is never simulating, and never
      swallowing arrow keys, while nobody is looking at it. */
-  var live = null;
+  var live = null, repaint = [];
   function claim(g) { if (live && live !== g) live.pause(); live = g; }
 
   document.addEventListener('visibilitychange', function () {
@@ -1186,7 +1269,7 @@ document.addEventListener('visibilitychange', function () {
       /* the ball dims while it waits to be served, so the pause reads as one */
       ctx.globalAlpha = g.wait > 0 ? 0.5 : 1;
       ctx.save();
-      ctx.shadowColor = t.mark; ctx.shadowBlur = 24;
+      ctx.shadowColor = t.mark; ctx.shadowBlur = 24 * theme.glow;
       drawMark(ctx, g.bx, g.by, R, t.mark, g.spin);
       ctx.shadowBlur = 0;
       drawMark(ctx, g.bx, g.by, R, t.mark, g.spin);   /* twice: the glow, then the line */
@@ -1293,6 +1376,7 @@ document.addEventListener('visibilitychange', function () {
     });
 
     g = fresh(); score(); draw();
+    repaint.push(draw);
   })();
 
   /* ---- Snake ---- */
@@ -1319,7 +1403,7 @@ document.addEventListener('visibilitychange', function () {
         ctx.fillRect(x * CELL + CELL / 2, y * CELL + CELL / 2, 1, 1);
 
       ctx.save();
-      ctx.shadowColor = t.mark; ctx.shadowBlur = 14;
+      ctx.shadowColor = t.mark; ctx.shadowBlur = 14 * theme.glow;
       drawMark(ctx, s.food.x * CELL + CELL / 2, s.food.y * CELL + CELL / 2, CELL / 2, t.mark, 0);
       ctx.restore();
 
@@ -1388,6 +1472,7 @@ document.addEventListener('visibilitychange', function () {
     api = { pause: function () { if (running) stop('Paused'); } };
     s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT', food: { x: 15, y: ROWS >> 1 }, score: 0 };
     draw();
+    repaint.push(draw);
   })();
 
   /* ---- tabs ----
@@ -1404,6 +1489,10 @@ document.addEventListener('visibilitychange', function () {
       });
     });
   });
+
+  /* An idle board is a still image: nothing is animating it, so a theme
+     change has to ask for the repaint explicitly. */
+  onTheme(function () { repaint.forEach(function (fn) { fn(); }); });
 
   /* scrolling the board out of view pauses too */
   if ('IntersectionObserver' in window) {

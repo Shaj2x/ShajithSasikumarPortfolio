@@ -6,6 +6,19 @@
 <title>Shajith Sasikumar, AI systems that keep running</title>
 <meta name="description" content="I build AI receptionists, voice agents and workflow automation for small businesses. Electrical Engineering at Western University, pursuing the Ivey HBA.">
 <meta name="theme-color" content="#0B0D10">
+<script>
+/* Runs before the stylesheet paints, so a returning visitor never sees the
+   default theme flash past on the way to theirs. */
+(function () {
+  try {
+    var d = document.documentElement, s = window.localStorage;
+    var m = s.getItem('ss-mode');
+    if (m === 'light' || m === 'dark') d.setAttribute('data-theme', m);
+    var a = s.getItem('ss-accent');
+    if (a && a !== 'signal') d.setAttribute('data-accent', a);
+  } catch (e) {}
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230B0D10'/><path d='M9 22c6 0 8-4 14-4M9 14c6 0 8-4 14-4' stroke='%23EEF2F6' stroke-width='2.4' fill='none' stroke-linecap='round'/></svg>">
 
 <!-- DEPLOY STEP: patch og:url and og:image with the live absolute URL before zipping -->
@@ -72,6 +85,21 @@
     <a href="#work">Work</a>
     <a href="#play">Play</a>
     <a href="Shajith_Sasikumar_Resume.pdf" target="_blank" rel="noopener">Résumé</a>
+    <div class="theming">
+      <div class="swatches" role="radiogroup" aria-label="Accent colour">
+        <button class="sw" type="button" role="radio" data-accent="signal" aria-checked="true"  aria-label="Signal"></button>
+        <button class="sw" type="button" role="radio" data-accent="ember"  aria-checked="false" aria-label="Ember"></button>
+        <button class="sw" type="button" role="radio" data-accent="mint"   aria-checked="false" aria-label="Mint"></button>
+        <button class="sw" type="button" role="radio" data-accent="iris"   aria-checked="false" aria-label="Iris"></button>
+        <button class="sw" type="button" role="radio" data-accent="bone"   aria-checked="false" aria-label="Bone"></button>
+      </div>
+      <button class="mode" id="mode" type="button" aria-label="Switch colour mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+          <g class="i-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></g>
+          <g class="i-moon"><path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2z"/></g>
+        </svg>
+      </button>
+    </div>
     <a class="nav-cta" href="#book">Book a call</a>
   </div>
 </nav>
