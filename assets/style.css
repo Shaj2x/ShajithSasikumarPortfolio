@@ -396,3 +396,29 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .band-1::before,.band-2::before{
   background:radial-gradient(ellipse 60% 52% at 30% 50%,rgba(4,6,10,.84) 0%,rgba(4,6,10,.6) 46%,rgba(4,6,10,0) 78%);
 }
+
+/* ---------- the settle: light resolves into the mark ----------
+   As band 4 assembles, a veil pulls the chamber back and the logo rises
+   where the ribbon came to rest, so the footage and the brand finish as one
+   image instead of a mark stuck on top of unrelated video. Both ride --km,
+   which trails the headline so the words land first. */
+.band-4{--km:clamp(0,(var(--k,0) - .42) * 2.1,1)}
+
+.settle-veil{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 88% 78% at 54% 58%,rgba(11,13,16,.38) 0%,rgba(11,13,16,.72) 70%);
+  opacity:var(--km,0);
+}
+
+.settle-mark{
+  position:absolute;left:58%;top:58%;pointer-events:none;
+  width:clamp(96px,10.5vw,176px);
+  color:var(--text-primary);
+  opacity:var(--km,0);
+  transform:translate(-50%,-50%) scale(calc(.86 + .14 * var(--km,0)));
+  filter:drop-shadow(0 0 22px rgba(159,216,255,.55)) drop-shadow(0 0 60px rgba(159,216,255,.25));
+}
+.settle-svg{width:100%;height:auto;display:block}
+
+/* below this width the caption column widens and would run into the mark */
+@media (max-width:1000px){.settle-mark{display:none}}
