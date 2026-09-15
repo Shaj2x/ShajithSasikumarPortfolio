@@ -11,6 +11,7 @@ var hero    = document.querySelector('.hero');
 var nav     = document.querySelector('.nav');
 var markSvg = document.querySelector('.hero-mark');
 var marks   = [].slice.call(document.querySelectorAll('.hero-mark .mk'));
+var halo    = document.getElementById('mark-halo');
 var headOut = document.getElementById('head');
 var headIn  = document.getElementById('head-core');
 var bandEls = [].slice.call(document.querySelectorAll('.band'));
@@ -140,7 +141,7 @@ function pointAt(i, drawn) {
 }
 
 var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1, lastHeadR = -1;
-var headSpeed = 0, HEAD_R = 24, CORE_R = 6.5;
+var headSpeed = 0, HEAD_R = 24, CORE_R = 6.5, lastGlow = '';
 
 /* A pen does not move at one speed. It slows into the end of a stroke and
    picks up again out of the next one. Blending a little smootherstep into
@@ -197,6 +198,13 @@ function drawMark(p, dt) {
       var fade = smoothstep(t, 0, 0.3) * (1 - smoothstep(t, 0.7, 1));
       headOp = 1 - 0.72 * fade;
     }
+  }
+
+  /* the ambient bloom rises as the mark fills in. One opacity write on a
+     promoted layer: no raster work, whatever the glow looks like. */
+  if (halo) {
+    var glow = (0.22 + 0.78 * q).toFixed(3);
+    if (glow !== lastGlow) { lastGlow = glow; halo.style.opacity = glow; }
   }
 
   if (Math.abs(headOp - lastHeadOp) > 0.004) {
