@@ -125,9 +125,11 @@ function liftPoint(from, to, t) {
 
 function drawMark(p, dt) {
   if (!runTotal || !plan.length) return null;
-  /* the mark finishes a little before the timeline does, so the intro has a
-     beat of stillness with the whole logo lit before it hands the page over */
-  var q = clamp(p / 0.88, 0, 1);
+  /* The draw owns the whole timeline. It used to stop at 88%, then 93%, and
+     hold a still frame for the rest, which is what made the ending look like
+     it was slowing: the line ran at full speed, then sat motionless for nine
+     frames while the page was still held. Nothing is reserved now. */
+  var q = clamp(p, 0, 1);
   var run = q * runTotal;          /* units travelled: linear in time, always */
   var hx = null, hy = null, headOp = 0;
 
@@ -158,11 +160,10 @@ function drawMark(p, dt) {
     }
   }
 
-  /* The nib lifts off the page at the finish rather than blinking out. This
-     is brightness, not pace: the line itself is still travelling at exactly
-     the speed it has held the whole way. */
-  var tail = runTotal - run;
-  if (tail < 90) headOp *= clamp(tail / 90, 0, 1);
+  /* The nib's own fade out is handed to CSS once the draw is over, so it can
+     happen after the page has been given back rather than inside the hold.
+     Dimming it while it is still travelling reads as deceleration however
+     constant the speed underneath it is. */
 
   /* the ambient bloom rises as the mark fills in. One opacity write on a
      promoted layer: no raster work, whatever the glow looks like. */
@@ -262,6 +263,13 @@ function endIntro() {
   if (intro === 'done') return;
   intro = 'done';
   hold(false);
+  /* arm the transition first, then let the nib go on the next frame, so the
+     fade actually animates instead of snapping */
+  var wrap = markSvg && markSvg.parentNode;
+  if (wrap) {
+    wrap.classList.add('drawn');
+    requestAnimationFrame(function () { wrap.style.setProperty('--head', '0'); });
+  }
   window.removeEventListener('touchmove', swallow);
   window.removeEventListener('scroll', onIdleScroll);
   releaseIntent();
