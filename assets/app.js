@@ -203,8 +203,8 @@ var heroCopy = document.getElementById('hero-copy');
 var heroCue  = document.getElementById('hero-cue');
 
 var intro = 'idle';                 /* idle | playing | done */
-var elapsed = 0, rate = 1, lit = false;
-var rafId = null, lastTick = 0, autoTimer = null;
+var elapsed = 0, lit = false;
+var rafId = null, lastTick = 0;
 
 /* Mostly linear, so the stroke reads as one confident movement, with just
    enough ease at each end that it starts and stops rather than snapping. */
@@ -216,7 +216,7 @@ function introEase(t) {
 function frame(now) {
   var dt = Math.min(64, now - (lastTick || now)) / 1000;
   lastTick = now;
-  elapsed += dt * 1000 * rate;
+  elapsed += dt * 1000;
 
   var raw = clamp(elapsed / DRAW_MS, 0, 1);
   var head = drawMark(introEase(raw), dt);
@@ -245,11 +245,10 @@ function startIntro() {
      an intro they cannot even see. */
   if (window.scrollY > 40) { settleIntro(); return; }
   intro = 'playing';
-  clearTimeout(autoTimer);
   if (heroCue) heroCue.classList.add('gone');
   hold(true);
   window.addEventListener('touchmove', swallow, { passive: false });
-  elapsed = 0; rate = 1; lit = false; lastTick = 0;
+  elapsed = 0; lit = false; lastTick = 0;
   if (rafId === null) rafId = requestAnimationFrame(frame);
 }
 
@@ -269,18 +268,19 @@ function endIntro() {
 
 /* straight to the end, no play: a mid page landing, or a resize after */
 function settleIntro() {
-  clearTimeout(autoTimer);
   if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
   elapsed = DRAW_MS;
   drawMark(1, 0);
   endIntro();
 }
 
-/* One router for every way a visitor can say "go": before the play it
-   starts it, during the play it runs the rest at speed. */
+/* The first scroll sets it off. After that it plays at its own pace: more
+   scrolling is swallowed rather than used to rush the draw, because a
+   transition that speeds up under an impatient thumb is not a transition.
+   Escape is the way out, and so is any link in the nav. */
 function onIntent(e) {
   if (intro === 'idle') { swallow(e); startIntro(); }
-  else if (intro === 'playing') { swallow(e); rate = 7; }
+  else if (intro === 'playing') swallow(e);
 }
 var KEYS = { ' ': 1, PageDown: 1, ArrowDown: 1, End: 1, Enter: 1 };
 function onKey(e) {
@@ -292,13 +292,11 @@ function captureIntent() {
   window.addEventListener('wheel', onIntent, { passive: false });
   window.addEventListener('touchmove', onIntent, { passive: false });
   window.addEventListener('keydown', onKey);
-  window.addEventListener('pointerdown', onIntent);
 }
 function releaseIntent() {
   window.removeEventListener('wheel', onIntent);
   window.removeEventListener('touchmove', onIntent);
   window.removeEventListener('keydown', onKey);
-  window.removeEventListener('pointerdown', onIntent);
 }
 
 /* ---------- arm and disarm, live on all five gates ---------- */
@@ -326,7 +324,9 @@ function armIntro() {
   window.addEventListener('scroll', onIdleScroll, { passive: true });
   /* the hash jump lands after this frame, so look again once it has */
   requestAnimationFrame(onIdleScroll);
-  autoTimer = setTimeout(startIntro, 900);    /* it plays even if they wait */
+  /* Nothing starts it but the visitor. The hero holds as a title card, with
+     its cue, until the first scroll: that way the scroll is what sets it
+     off, rather than a timer that may already have fired before they looked. */
 }
 
 /* Anything that moves the page while the intro is still waiting, a hash
@@ -343,7 +343,6 @@ function onResize() {
 function disarmIntro() {
   if (!armed) return;
   armed = false;
-  clearTimeout(autoTimer);
   releaseIntent();
   window.removeEventListener('scroll', onIdleScroll);
   window.removeEventListener('resize', onResize);

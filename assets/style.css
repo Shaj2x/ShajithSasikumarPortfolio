@@ -637,8 +637,16 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
   transform:translateY(100%);will-change:transform}
 .wipe.in{transform:translateY(0);transition:transform 280ms var(--ease-out)}
 .wipe.out{transform:translateY(-100%);transition:transform 420ms var(--ease-out)}
-.wipe-mark{position:absolute;left:50%;top:50%;width:64px;transform:translate(-50%,-50%);
-  color:var(--text-primary);opacity:.5}
+/* The mark is the whole point of the wipe, so it arrives at a size you can
+   actually read it at, and it lands rather than simply being there: it
+   scales the last of the way in as the panel closes, and leaves the same
+   way. 0.9, never 0 — nothing in the world appears out of nothing. */
+.wipe-mark{position:absolute;left:50%;top:50%;width:clamp(150px,17vw,240px);
+  color:var(--text-primary);opacity:0;
+  transform:translate(-50%,-50%) scale(.9);
+  transition:opacity 200ms var(--ease-out),transform 380ms var(--ease-out)}
+.wipe-mark-svg{display:block;width:100%;height:auto}
+.wipe.in .wipe-mark{opacity:.62;transform:translate(-50%,-50%) scale(1)}
 
 @media (prefers-reduced-motion:reduce){
   .wipe{display:none}
