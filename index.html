@@ -61,66 +61,61 @@
 <!-- ============ HERO ============ -->
 <section class="hero" id="top">
   <div class="stage" id="stage">
-    <div class="poster" id="poster" aria-hidden="true"></div>
-    <video id="hero-video" preload="none" muted playsinline aria-hidden="true" tabindex="-1"></video>
-    <div class="scrim" aria-hidden="true"></div>
 
-    <svg class="ring" id="ring" viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-dasharray="126" style="stroke-dashoffset:var(--ld,126)"/>
-    </svg>
+    <!-- vector environment: depth, drift, and the glow that follows the line -->
+    <canvas id="field" class="field" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <!-- the mark draws itself across the whole scroll -->
+    <div class="mark-wrap" aria-hidden="true">
+      <svg class="hero-mark" xmlns="http://www.w3.org/2000/svg" viewBox="286 250 438 508" fill="none" stroke="currentColor" stroke-width="17.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="mk mk1" d="M309.0 532.0 C322.2 540.0 369.7 569.3 388.0 580.0 C406.3 590.7 408.8 591.3 419.0 596.0 C429.2 600.7 441.7 605.3 449.0 608.0 C456.3 610.7 456.8 611.2 463.0 612.0 C469.2 612.8 480.3 613.2 486.0 613.0 C491.7 612.8 493.2 612.3 497.0 611.0 C500.8 609.7 505.0 608.5 509.0 605.0 C513.0 601.5 518.5 594.5 521.0 590.0 C523.5 585.5 523.8 582.8 524.0 578.0 C524.2 573.2 523.2 565.5 522.0 561.0 C520.8 556.5 521.5 556.3 517.0 551.0 C512.5 545.7 511.0 541.5 495.0 529.0 C479.0 516.5 437.3 488.8 421.0 476.0 C404.7 463.2 404.0 460.2 397.0 452.0 C390.0 443.8 383.8 435.5 379.0 427.0 C374.2 418.5 370.3 408.5 368.0 401.0 C365.7 393.5 365.3 388.5 365.0 382.0 C364.7 375.5 364.7 369.0 366.0 362.0 C367.3 355.0 370.3 346.2 373.0 340.0 C375.7 333.8 376.7 331.3 382.0 325.0 C387.3 318.7 396.2 308.7 405.0 302.0 C413.8 295.3 425.7 289.2 435.0 285.0 C444.3 280.8 449.5 279.0 461.0 277.0 C472.5 275.0 473.0 273.5 504.0 273.0 C535.0 272.5 623.2 273.8 647.0 274.0"/><path class="mk mk2" d="M365.0 739.0 C366.0 738.2 339.2 734.8 371.0 734.0 C402.8 733.2 520.2 734.7 556.0 734.0 C591.8 733.3 577.2 731.8 586.0 730.0 C594.8 728.2 600.3 726.8 609.0 723.0 C617.7 719.2 629.8 712.8 638.0 707.0 C646.2 701.2 652.7 694.5 658.0 688.0 C663.3 681.5 666.8 675.2 670.0 668.0 C673.2 660.8 675.7 653.3 677.0 645.0 C678.3 636.7 678.5 626.0 678.0 618.0 C677.5 610.0 676.5 604.8 674.0 597.0 C671.5 589.2 667.5 579.2 663.0 571.0 C658.5 562.8 655.5 557.3 647.0 548.0 C638.5 538.7 625.2 525.3 612.0 515.0 C598.8 504.7 581.7 494.3 568.0 486.0 C554.3 477.7 539.5 471.2 530.0 465.0 C520.5 458.8 515.8 454.7 511.0 449.0 C506.2 443.3 502.8 436.7 501.0 431.0 C499.2 425.3 499.5 419.7 500.0 415.0 C500.5 410.3 501.5 407.0 504.0 403.0 C506.5 399.0 511.8 393.8 515.0 391.0 C518.2 388.2 518.7 387.7 523.0 386.0 C527.3 384.3 534.8 381.8 541.0 381.0 C547.2 380.2 552.7 380.2 560.0 381.0 C567.3 381.8 573.0 382.3 585.0 386.0 C597.0 389.7 612.8 394.0 632.0 403.0 C651.2 412.0 688.7 433.8 700.0 440.0"/></svg>
+      <svg class="head-layer" viewBox="286 250 438 508" aria-hidden="true">
+        <circle class="head" id="head" r="26" cx="-100" cy="-100"/>
+        <circle class="head-core" id="head-core" r="7" cx="-100" cy="-100"/>
+      </svg>
+    </div>
+
+    <p class="hero-id">Shajith Sasikumar<span>Ontario, Canada</span></p>
 
     <!-- band 1 -->
-    <div class="band band-1" data-range="0,0.23" data-entrance="drift">
-      <p class="band-kicker">Ontario, Canada</p>
-      <h1 class="band-h split">Shajith Sasikumar</h1>
-      <p class="band-sub">Engineering Science + Ivey HBA, Western University</p>
+    <div class="band band-1" data-range="0,0.24" data-entrance="drift">
+      <p class="band-kicker">Seven in the evening</p>
+      <h1 class="band-h split">A call comes in.</h1>
+      <p class="band-sub">The one you would have missed.</p>
     </div>
 
     <!-- band 2 -->
-    <div class="band band-2" data-range="0.27,0.51" data-entrance="rise">
-      <p class="band-h split">I build systems that keep running after I leave.</p>
+    <div class="band band-2" data-range="0.28,0.52" data-entrance="rise">
+      <p class="band-kicker">It answers</p>
+      <p class="band-h split">It picks up and books them in.</p>
+      <p class="band-sub">Into your real calendar, on the first ring, every time.</p>
     </div>
 
     <!-- band 3 -->
-    <div class="band band-3" data-range="0.55,0.77" data-entrance="blur">
-      <p class="band-h blur-pair"><span class="soft" aria-hidden="true">Nothing dropped. Nothing forgotten.</span><span class="sharp">Nothing dropped. Nothing forgotten.</span></p>
+    <div class="band band-3" data-range="0.56,0.78" data-entrance="rise">
+      <p class="band-kicker">It remembers</p>
+      <p class="band-h split">It logs the details and follows up.</p>
+      <p class="band-sub">Transcript, contact, next step. Nothing dropped.</p>
     </div>
 
-    <!-- band 4, the settle: the footage recedes and resolves into the mark -->
-    <div class="band band-4" data-range="0.81,1" data-entrance="settle">
-      <div class="settle-veil" aria-hidden="true"></div>
-      <div class="settle-mark" aria-hidden="true"><svg class="settle-svg" xmlns="http://www.w3.org/2000/svg" viewBox="292 256 426 496" fill="currentColor" aria-hidden="true"><g transform="translate(0,1024) scale(0.1,-0.1)"><path d="M4878 7575 c-1 -1 -41 -6 -88 -9 -492 -39 -939 -317 -1120 -698 -67
--141 -85 -228 -85 -413 0 -146 2 -168 28 -255 63 -214 192 -421 392 -628 173
--180 337 -309 715 -562 232 -156 382 -297 420 -395 37 -95 33 -183 -10 -263
--80 -150 -268 -206 -501 -151 -292 69 -835 354 -1411 740 -103 69 -143 76
--177 33 -24 -30 -27 -72 -8 -96 15 -20 170 -122 407 -270 511 -318 900 -504
-1190 -568 80 -18 246 -21 313 -5 242 56 407 268 382 488 -26 232 -154 380
--570 657 -300 200 -468 334 -630 501 -126 130 -175 192 -245 309 -186 309
--188 629 -6 910 147 227 441 414 751 479 179 37 284 41 1116 41 l810 0 -3 78
--3 77 -832 2 c-457 1 -833 0 -835 -2z"/><path d="M5306 6479 c-213 -61 -341 -193 -377 -392 -30 -163 56 -349 224 -484
-83 -68 170 -123 367 -233 176 -99 361 -213 475 -294 475 -335 732 -754 712
--1156 -23 -445 -333 -773 -850 -899 -190 -47 -303 -51 -1298 -51 -909 0 -909
-0 -909 -29 0 -15 -3 -49 -6 -75 -7 -47 -7 -47 1027 -43 569 2 1052 7 1074 11
-363 65 601 174 804 370 175 170 270 354 306 591 61 404 -98 801 -462 1156
--205 201 -362 310 -828 577 -216 123 -310 188 -371 255 -196 212 -123 459 161
-543 274 81 844 -108 1517 -503 102 -60 131 -73 153 -67 36 9 57 44 53 91 -3
-38 -5 39 -148 125 -378 228 -822 421 -1136 494 -161 37 -382 43 -488 13z"/></g></svg></div>
-      <p class="band-h split">And it knows when to hand you the phone.</p>
+    <!-- band 4, the settle -->
+    <div class="band band-4" data-range="0.82,1" data-entrance="settle">
+      <p class="band-kicker">And the part nobody mentions</p>
+      <p class="band-h split">It knows when to hand you the phone.</p>
       <div class="band-cta">
         <a class="btn" href="#book">Book a call</a>
         <a class="btn btn-ghost" href="#build">See what I build</a>
       </div>
     </div>
   </div>
-
 </section>
 
   <!-- the composed static hero: phones and reduced motion -->
   <div class="static-hero" id="static-hero">
+    <div class="static-field" aria-hidden="true"><svg class="static-mark" xmlns="http://www.w3.org/2000/svg" viewBox="286 250 438 508" fill="none" stroke="currentColor" stroke-width="17.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="mk mk1" d="M309.0 532.0 C322.2 540.0 369.7 569.3 388.0 580.0 C406.3 590.7 408.8 591.3 419.0 596.0 C429.2 600.7 441.7 605.3 449.0 608.0 C456.3 610.7 456.8 611.2 463.0 612.0 C469.2 612.8 480.3 613.2 486.0 613.0 C491.7 612.8 493.2 612.3 497.0 611.0 C500.8 609.7 505.0 608.5 509.0 605.0 C513.0 601.5 518.5 594.5 521.0 590.0 C523.5 585.5 523.8 582.8 524.0 578.0 C524.2 573.2 523.2 565.5 522.0 561.0 C520.8 556.5 521.5 556.3 517.0 551.0 C512.5 545.7 511.0 541.5 495.0 529.0 C479.0 516.5 437.3 488.8 421.0 476.0 C404.7 463.2 404.0 460.2 397.0 452.0 C390.0 443.8 383.8 435.5 379.0 427.0 C374.2 418.5 370.3 408.5 368.0 401.0 C365.7 393.5 365.3 388.5 365.0 382.0 C364.7 375.5 364.7 369.0 366.0 362.0 C367.3 355.0 370.3 346.2 373.0 340.0 C375.7 333.8 376.7 331.3 382.0 325.0 C387.3 318.7 396.2 308.7 405.0 302.0 C413.8 295.3 425.7 289.2 435.0 285.0 C444.3 280.8 449.5 279.0 461.0 277.0 C472.5 275.0 473.0 273.5 504.0 273.0 C535.0 272.5 623.2 273.8 647.0 274.0"/><path class="mk mk2" d="M365.0 739.0 C366.0 738.2 339.2 734.8 371.0 734.0 C402.8 733.2 520.2 734.7 556.0 734.0 C591.8 733.3 577.2 731.8 586.0 730.0 C594.8 728.2 600.3 726.8 609.0 723.0 C617.7 719.2 629.8 712.8 638.0 707.0 C646.2 701.2 652.7 694.5 658.0 688.0 C663.3 681.5 666.8 675.2 670.0 668.0 C673.2 660.8 675.7 653.3 677.0 645.0 C678.3 636.7 678.5 626.0 678.0 618.0 C677.5 610.0 676.5 604.8 674.0 597.0 C671.5 589.2 667.5 579.2 663.0 571.0 C658.5 562.8 655.5 557.3 647.0 548.0 C638.5 538.7 625.2 525.3 612.0 515.0 C598.8 504.7 581.7 494.3 568.0 486.0 C554.3 477.7 539.5 471.2 530.0 465.0 C520.5 458.8 515.8 454.7 511.0 449.0 C506.2 443.3 502.8 436.7 501.0 431.0 C499.2 425.3 499.5 419.7 500.0 415.0 C500.5 410.3 501.5 407.0 504.0 403.0 C506.5 399.0 511.8 393.8 515.0 391.0 C518.2 388.2 518.7 387.7 523.0 386.0 C527.3 384.3 534.8 381.8 541.0 381.0 C547.2 380.2 552.7 380.2 560.0 381.0 C567.3 381.8 573.0 382.3 585.0 386.0 C597.0 389.7 612.8 394.0 632.0 403.0 C651.2 412.0 688.7 433.8 700.0 440.0"/></svg></div>
     <div class="static-inner">
       <p class="band-kicker">Ontario, Canada</p>
-      <h1 class="static-h">I build systems that keep running after I leave.</h1>
+      <h1 class="static-h">It answers the call you would have missed.</h1>
       <p class="static-sub">AI receptionists, voice agents and automation for small businesses. Engineering Science + Ivey HBA at Western University.</p>
       <div class="band-cta">
         <a class="btn" href="#book">Book a call</a>
@@ -132,6 +127,7 @@
 <!-- ============ THE PROBLEM ============ -->
 <section class="sec sec-problem" id="problem">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">The problem</p>
     <p class="stat-line"><span class="stat" data-count="62">62</span><span class="pct">%</span></p>
     <h2 class="sec-h">of calls to a small business go unanswered.</h2>
@@ -142,6 +138,7 @@
 <!-- ============ WHAT I BUILD ============ -->
 <section class="sec" id="build">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">What I build</p>
     <h2 class="sec-h">Six things, each scoped so you know what arrives.</h2>
     <ul class="offers">
@@ -159,6 +156,7 @@
 <!-- ============ THE LINE (the one interactive moment) ============ -->
 <section class="sec sec-line" id="line">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">The idea</p>
     <h2 class="sec-h rev">One unbroken line, from the first ring to the job done.</h2>
     <p class="lede rev">Hold the button. Watch it join up. That is the whole product.</p>
@@ -187,6 +185,7 @@
 <!-- ============ HOW IT GOES ============ -->
 <section class="sec" id="process">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">How it goes</p>
     <h2 class="sec-h rev">Four steps, in this order.</h2>
     <p class="lede rev">No retainer before you have seen a written scope.</p>
@@ -202,6 +201,7 @@
 <!-- ============ THE RECORD ============ -->
 <section class="sec" id="record">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">The record</p>
     <h2 class="sec-h rev">The line has been unbroken for a while.</h2>
     <div class="rec-grid">
@@ -236,6 +236,7 @@
 <!-- ============ SELECTED WORK ============ -->
 <section class="sec" id="work">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">Selected work</p>
     <h2 class="sec-h rev">Things I have shipped.</h2>
     <p class="lede rev">Pulled live from GitHub, newest first.</p>
@@ -250,6 +251,7 @@
 <!-- ============ FAQ ============ -->
 <section class="sec" id="faq">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">The real questions</p>
     <h2 class="sec-h rev">What people actually ask before they buy.</h2>
     <div class="faq stagger">
@@ -265,6 +267,7 @@
 <!-- ============ BOOK ============ -->
 <section class="sec sec-book" id="book">
   <div class="wrap">
+    <div class="rule"></div>
     <p class="kicker">Get started</p>
     <h2 class="sec-h rev">Tell me where your time goes.</h2>
     <p class="lede rev">Thirty minutes, no pitch. If automation is not the answer for you, I will say so on the call.</p>

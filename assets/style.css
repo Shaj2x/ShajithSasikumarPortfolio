@@ -104,25 +104,6 @@ a{color:inherit;text-decoration:none}
 .hero{position:relative;height:540vh;z-index:1}
 .stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--canvas)}
 
-.poster{position:absolute;inset:0;background-size:cover;background-position:center;opacity:1;transition:opacity 1.2s var(--ease)}
-.stage.video-ready .poster{opacity:0}
-
-#hero-video{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  opacity:0;transition:opacity 1.2s var(--ease);
-  will-change:transform;transform:translateZ(0);
-}
-.stage.video-ready #hero-video{opacity:1}
-.stage.video-failed #hero-video{display:none}
-
-/* global base scrim: no frame is ever raw behind the page */
-.scrim{position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse 120% 90% at 50% 45%,rgba(8,10,14,0) 30%,rgba(8,10,14,.66) 100%)}
-
-.ring{position:absolute;left:50%;bottom:48px;transform:translateX(-50%);width:44px;height:44px;color:var(--accent);opacity:.75}
-.ring circle{transition:stroke-dashoffset .18s linear;transform:rotate(-90deg);transform-origin:50% 50%}
-.stage.video-ready .ring,.stage.video-failed .ring{opacity:0;transition:opacity .6s var(--ease)}
-
 /* ---------- caption bands ---------- */
 .band{
   position:absolute;inset:0;display:grid;align-content:center;
@@ -198,11 +179,11 @@ a{color:inherit;text-decoration:none}
 }
 
 /* short desktop windows keep the scrub but lose the overlays with no room */
-@media (max-height:560px){.ring{display:none}}
 
 /* ---------- sections ---------- */
-.sec{position:relative;z-index:1;padding-block:clamp(88px,12vw,168px);border-top:1px solid var(--line)}
+.sec{position:relative;z-index:1;padding-block:clamp(64px,9vw,132px)}
 .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:26px}
+.rule + .kicker{margin-top:clamp(40px,6vw,76px)}
 .sec-h{font-size:clamp(1.7rem,4vw,3rem);max-width:22ch;letter-spacing:-.03em}
 .lede{margin-top:24px;color:var(--text-secondary);max-width:58ch;font-size:clamp(1rem,1.6vw,1.15rem)}
 
@@ -365,17 +346,17 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .foot-links a:hover{color:var(--accent)}
 .foot-meta{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
 
-/* ---------- band placement, composed to the delivered footage ----------
-   The ribbon owns the centre lane the whole way down, so every band sits in
-   a left column that never crosses it. Bands 3 and 4 ride high because the
-   haze blooms across the bottom of the frame in the back half of the shot,
-   and the settled ribbon sits centre low in the final seconds. */
-.band-h,.band-sub,.band-kicker{max-width:min(17ch,44vw)}
+/* ---------- band placement ----------
+   The mark draws in the right half of the stage, so every caption sits in a
+   left column that never crosses it. */
+.band-h{max-width:min(17ch,44vw)}
+.band-sub{max-width:min(30ch,40vw)}
+.band-kicker{max-width:none}
 .band-2 .band-h{max-width:min(15ch,42vw)}
 .band-3 .band-h,.band-4 .band-h{max-width:min(16ch,42vw)}
-.band-3,.band-4{align-content:start;padding-top:clamp(96px,17vh,180px)}
+.band-3,.band-4{align-content:center}
 
-/* the per band scrim follows the text column instead of sitting centre frame */
+/* the per band scrim follows the text column */
 .band::before{
   background:radial-gradient(ellipse 58% 50% at 30% 50%,rgba(4,6,10,.74) 0%,rgba(4,6,10,.5) 46%,rgba(4,6,10,0) 76%);
 }
@@ -383,42 +364,70 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
   background:radial-gradient(ellipse 58% 42% at 30% 30%,rgba(4,6,10,.76) 0%,rgba(4,6,10,.52) 46%,rgba(4,6,10,0) 76%);
 }
 
-/* the ending frame carries the static hero */
-.static-hero{background-image:url('hero-ending.jpg')}
-
 @media (max-width:1100px){
-  .band-h,.band-sub,.band-kicker,.band-2 .band-h,.band-3 .band-h,.band-4 .band-h{max-width:min(17ch,62vw)}
+  .band-h,.band-2 .band-h,.band-3 .band-h,.band-4 .band-h{max-width:min(17ch,72vw)}
+  .band-sub{max-width:min(34ch,72vw)}
 }
 
-/* Bands 1 and 2 sit beside the ribbon at its brightest, so they carry a
-   deeper peak alpha than the later beats. Measured, not guessed: this took
-   band 1 from 3.94:1 to comfortably clear of the 3.5:1 floor. */
+/* the first two beats sit nearest the drawing head, the brightest thing on
+   the stage, so they carry a deeper scrim than the later ones */
 .band-1::before,.band-2::before{
   background:radial-gradient(ellipse 60% 52% at 30% 50%,rgba(4,6,10,.84) 0%,rgba(4,6,10,.6) 46%,rgba(4,6,10,0) 78%);
 }
 
-/* ---------- the settle: light resolves into the mark ----------
-   As band 4 assembles, a veil pulls the chamber back and the logo rises
-   where the ribbon came to rest, so the footage and the brand finish as one
-   image instead of a mark stuck on top of unrelated video. Both ride --km,
-   which trails the headline so the words land first. */
-.band-4{--km:clamp(0,(var(--k,0) - .42) * 2.1,1)}
 
-.settle-veil{
-  position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse 88% 78% at 54% 58%,rgba(11,13,16,.38) 0%,rgba(11,13,16,.72) 70%);
-  opacity:var(--km,0);
+/* ============================================================
+   THE VECTOR HERO
+   A point of light traces the mark as you scroll, leaving the
+   line behind it. No video anywhere: everything here is vector,
+   canvas and transforms, which is why it stays smooth.
+   ============================================================ */
+
+.field{position:absolute;inset:0;width:100%;height:100%;opacity:.9}
+
+.vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 100% 78% at 62% 50%,rgba(11,13,16,0) 30%,rgba(11,13,16,.72) 100%)}
+
+/* the persistent identity line, always on, never part of a beat */
+.hero-id{position:absolute;left:var(--gut);bottom:clamp(28px,5vh,52px);z-index:3;
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-primary);text-shadow:var(--tshadow)}
+.hero-id span{display:block;margin-top:6px;color:var(--text-dim)}
+
+/* the mark itself, held in the right half */
+.mark-wrap{position:absolute;top:50%;left:68%;transform:translate(-50%,-50%);
+  width:min(46vh,34vw);aspect-ratio:438/508;pointer-events:none}
+.hero-mark,.head-layer{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+.hero-mark{color:var(--text-primary)}
+.hero-mark .mk{
+  stroke-dasharray:var(--len,1200);
+  stroke-dashoffset:var(--off,1200);
+  filter:drop-shadow(0 0 16px rgba(159,216,255,.7)) drop-shadow(0 0 52px rgba(159,216,255,.3));
 }
 
-.settle-mark{
-  position:absolute;left:58%;top:58%;pointer-events:none;
-  width:clamp(96px,10.5vw,176px);
-  color:var(--text-primary);
-  opacity:var(--km,0);
-  transform:translate(-50%,-50%) scale(calc(.86 + .14 * var(--km,0)));
-  filter:drop-shadow(0 0 22px rgba(159,216,255,.55)) drop-shadow(0 0 60px rgba(159,216,255,.25));
-}
-.settle-svg{width:100%;height:auto;display:block}
+/* the drawing head: the light doing the writing */
+.head{fill:rgba(159,216,255,.42);filter:blur(10px)}
+.head-core{fill:#FFFFFF;filter:drop-shadow(0 0 16px rgba(200,235,255,1)) drop-shadow(0 0 48px rgba(159,216,255,.75))}
+.head,.head-core{opacity:var(--head,0)}
 
-/* below this width the caption column widens and would run into the mark */
-@media (max-width:1000px){.settle-mark{display:none}}
+@media (max-width:1100px){
+  .mark-wrap{left:50%;top:44%;width:min(52vh,72vw);opacity:.4}
+  .vignette{background:radial-gradient(ellipse 120% 80% at 50% 45%,rgba(11,13,16,0) 20%,rgba(11,13,16,.8) 100%)}
+}
+
+/* ---------- static hero, phones and reduced motion ---------- */
+.static-field{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.static-mark{width:min(64vw,320px);height:auto;color:var(--text-primary);opacity:.22;
+  filter:drop-shadow(0 0 22px rgba(159,216,255,.35))}
+.static-hero::after{background:radial-gradient(ellipse 110% 80% at 50% 42%,rgba(11,13,16,.2) 0%,rgba(11,13,16,.86) 72%,var(--canvas) 100%)}
+
+/* ---------- the line motif, carried down the whole page ----------
+   The same stroke language as the mark, drawn on scroll, so the sections
+   below the hero belong to it instead of sitting underneath it. */
+.rule{position:relative;height:1px;background:var(--line);overflow:visible}
+.rule::after{content:"";position:absolute;inset:0;background:var(--accent);
+  transform-origin:left center;transform:scaleX(var(--draw,0));
+  box-shadow:0 0 12px rgba(159,216,255,.5);
+  transition:transform 1.6s var(--ease)}
+.rule.in::after{--draw:1}
