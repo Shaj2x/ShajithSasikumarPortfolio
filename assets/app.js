@@ -1091,7 +1091,9 @@ document.addEventListener('visibilitychange', function () {
    first press, and both stop the moment the tab is hidden. */
 (function games() {
   var tabs   = [].slice.call(document.querySelectorAll('.game-tab'));
-  var panels = { pong: document.getElementById('panel-pong'), snake: document.getElementById('panel-snake') };
+  var panels = { pong:  document.getElementById('panel-pong'),
+                 snake: document.getElementById('panel-snake'),
+                 time:  document.getElementById('panel-time') };
   if (!tabs.length) return;
 
   function paintTokens() {
@@ -1473,6 +1475,147 @@ document.addEventListener('visibilitychange', function () {
     s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT', food: { x: 15, y: ROWS >> 1 }, score: 0 };
     draw();
     repaint.push(draw);
+  })();
+
+  /* ---- Time it ----
+     A round is two presses. Between them nothing on screen moves, because
+     anything that did would be the answer: no bar, no ticking readout, no
+     pulse to count. The mark is the button you press, and afterwards it is
+     the scoreboard, drawing itself as far as the round earned. */
+  (function timeIt() {
+    var stage = document.getElementById('panel-time'); if (!stage) return;
+    var frame = stage.querySelector('.time-frame');
+    var btn   = document.getElementById('time-btn');
+    var label = document.getElementById('time-label');
+    var targetEl = document.getElementById('t-target');
+    var read  = document.getElementById('time-read');
+    var A = document.getElementById('t-a'), B = document.getElementById('t-b'),
+        C = document.getElementById('t-c'), V = document.getElementById('t-verdict');
+    var scoreEl = document.getElementById('time-score');
+    var markLive = stage.querySelector('.tmark-live'),
+        ghost = stage.querySelector('.tmark-ghost');
+    var stillMQ = matchMedia('(prefers-reduced-motion: reduce)');
+
+    var MIN = 0.25, MAX = 15;
+    /* the error at which the mark is left completely undrawn */
+    var MISS = 1.2;
+    var KEY = 'ss-timeit-best';
+
+    var target = 0, t0 = 0, state = 'idle', rounds = 0, sessionBest = Infinity;
+    var allTime = load();
+
+    function load() {
+      try { var v = parseFloat(localStorage.getItem(KEY)); return v > 0 ? v : Infinity; }
+      catch (e) { return Infinity; }
+    }
+    function save(v) { try { localStorage.setItem(KEY, v.toFixed(4)); } catch (e) {} }
+
+    /* how much of the mark a round earns: dead on fills it, MISS empties it */
+    function earned(diff) {
+      var f = 1 - diff / MISS;
+      return f <= 0 ? 0 : (f >= 1 ? 1 : f * f * (3 - 2 * f));   /* eased, so near misses still read */
+    }
+
+    function paint(svg, fill) {
+      [].forEach.call(svg.querySelectorAll('path'), function (p) {
+        var len = p.getTotalLength();
+        p.style.setProperty('--len', len.toFixed(1));
+        p.style.setProperty('--off', (len * (1 - fill)).toFixed(1));
+      });
+    }
+
+    function verdict(d) {
+      if (d < 0.03) return 'Dead on.';
+      if (d < 0.10) return 'Uncanny.';
+      if (d < 0.25) return 'Sharp.';
+      if (d < 0.50) return 'Close.';
+      if (d < 1.00) return 'In the region.';
+      if (d < 2.00) return 'Wide.';
+      return 'Somewhere else entirely.';
+    }
+
+    function fmt(s) { return s.toFixed(2) + 's'; }
+
+    function score() {
+      var bits = [];
+      bits.push(rounds ? 'Best this session ' + fmt(sessionBest) + ' off' : 'No rounds yet');
+      if (allTime < Infinity) bits.push('All time ' + fmt(allTime) + ' off');
+      scoreEl.textContent = bits.join(' \u00b7 ');
+    }
+
+    function arm() {
+      state = 'idle';
+      target = MIN + Math.random() * (MAX - MIN);
+      targetEl.firstChild.nodeValue = target.toFixed(2);
+      label.textContent = 'Start';
+      frame.classList.remove('running');
+      read.hidden = true; V.textContent = '';
+      paint(markLive, 0);
+    }
+
+    function begin() {
+      state = 'running';
+      claim(api);
+      label.textContent = 'Stop';
+      frame.classList.add('running');
+      read.hidden = true; V.textContent = '';
+      paint(markLive, 0);
+      t0 = performance.now();                 /* the clock starts on the press */
+    }
+
+    function stop() {
+      if (state !== 'running') return;
+      var actual = (performance.now() - t0) / 1000;
+      state = 'done';
+      var diff = Math.abs(actual - target);
+      rounds++;
+      if (diff < sessionBest) sessionBest = diff;
+      if (diff < allTime) { allTime = diff; save(diff); paint(ghost, earned(diff)); }
+
+      A.textContent = fmt(target);
+      B.textContent = fmt(actual);
+      C.textContent = (actual > target ? '+' : '\u2212') + fmt(diff).replace('s', '') + 's';
+      V.textContent = verdict(diff);
+      read.hidden = false;
+      label.textContent = 'Again';
+      frame.classList.remove('running');
+      score();
+
+      var f = earned(diff);
+      if (stillMQ.matches) paint(markLive, f);
+      else requestAnimationFrame(function () { paint(markLive, f); });
+    }
+
+    function press() {
+      if (state === 'running') stop();
+      else { if (state === 'done') arm(); begin(); }
+    }
+
+    var api = {
+      /* switching away mid round cannot pause a clock meaningfully, so the
+         round is abandoned rather than frozen */
+      pause: function () {
+        if (state !== 'running') return;
+        state = 'done'; arm();
+        V.textContent = 'Round abandoned.';
+      }
+    };
+
+    btn.addEventListener('click', press);
+
+    /* Space and Enter, but only while this panel is the one on screen, so the
+       keys never get taken away from the rest of the page. */
+    window.addEventListener('keydown', function (e) {
+      if (stage.hidden || e.repeat) return;
+      if (e.key !== ' ' && e.key !== 'Enter' && e.key !== 'Spacebar') return;
+      if (document.activeElement && document.activeElement !== document.body
+          && document.activeElement !== btn) return;
+      e.preventDefault();
+      press();
+    });
+
+    paint(ghost, allTime < Infinity ? earned(allTime) : 0);
+    arm(); score();
   })();
 
   /* ---- tabs ----
