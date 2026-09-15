@@ -1551,7 +1551,12 @@ document.addEventListener('visibilitychange', function () {
       state = 'idle';
       target = MIN + Math.floor(Math.random() * STEPS) * STEP;
       targetEl.firstChild.nodeValue = target.toFixed(2);
-      label.textContent = 'Start';
+      label.textContent = 'Start timer';
+      /* a beat on the number itself, so a new target is noticed rather than
+         quietly swapped in under the same layout */
+      targetEl.classList.remove('fresh');
+      void targetEl.offsetWidth;
+      targetEl.classList.add('fresh');
       frame.classList.remove('running');
       read.hidden = true; V.textContent = '';
       paint(markLive, 0);
@@ -1581,7 +1586,7 @@ document.addEventListener('visibilitychange', function () {
       C.textContent = (actual > target ? '+' : '\u2212') + fmt(diff).replace('s', '') + 's';
       V.textContent = verdict(diff);
       read.hidden = false;
-      label.textContent = 'Again';
+      label.textContent = 'New target';
       frame.classList.remove('running');
       score();
 
@@ -1590,9 +1595,15 @@ document.addEventListener('visibilitychange', function () {
       else requestAnimationFrame(function () { paint(markLive, f); });
     }
 
+    /* Three states, never two things in one press. Ending a round only
+       draws the next target; starting the clock is a separate, deliberate
+       press. Before, "Again" armed a new target and started timing in the
+       same gesture, so every round after the first was timed against a
+       number the player had not had a chance to read. */
     function press() {
-      if (state === 'running') stop();
-      else { if (state === 'done') arm(); begin(); }
+      if (state === 'running') { stop(); return; }
+      if (state === 'done')    { arm();  return; }
+      begin();
     }
 
     var api = {
