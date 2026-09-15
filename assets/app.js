@@ -1496,7 +1496,11 @@ document.addEventListener('visibilitychange', function () {
         ghost = stage.querySelector('.tmark-ghost');
     var stillMQ = matchMedia('(prefers-reduced-motion: reduce)');
 
-    var MIN = 0.25, MAX = 15;
+    /* Targets land on quarter seconds. An arbitrary 7.42 is not really a
+       timing test, it is a guess at the second decimal; 7.25 is something a
+       person can actually aim at and feel. */
+    var MIN = 0.25, MAX = 15, STEP = 0.25;
+    var STEPS = Math.round((MAX - MIN) / STEP) + 1;
     /* the error at which the mark is left completely undrawn */
     var MISS = 1.2;
     var KEY = 'ss-timeit-best';
@@ -1545,7 +1549,7 @@ document.addEventListener('visibilitychange', function () {
 
     function arm() {
       state = 'idle';
-      target = MIN + Math.random() * (MAX - MIN);
+      target = MIN + Math.floor(Math.random() * STEPS) * STEP;
       targetEl.firstChild.nodeValue = target.toFixed(2);
       label.textContent = 'Start';
       frame.classList.remove('running');
