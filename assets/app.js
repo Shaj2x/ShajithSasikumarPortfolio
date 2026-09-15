@@ -81,24 +81,46 @@ function measureMark() {
     if (k < marks.length - 1) {
       var from = pointAt(k, lens[k]), to = pointAt(k + 1, 0);
       if (from && to) {
-        var arc = liftLength(from, to);
-        plan.push({ kind: 'lift', from: from, to: to, at: runTotal, len: arc });
-        runTotal += arc;
+        var curve = liftCurve(from, to, edgeDir(k, lens[k], true), edgeDir(k + 1, 0, false));
+        var tbl = liftTable(curve);
+        plan.push({ kind: 'lift', tbl: tbl, at: runTotal, len: tbl.len });
+        runTotal += tbl.len;
       }
     }
   }
 }
 
-/* The lift arc's true length, so the travel can be paid for at the same rate
-   as the strokes instead of taking a flat share of the clock. */
-function liftLength(from, to) {
-  var n = 40, L = 0, prev = liftPoint(from, to, 0);
+/* The lift arc, sampled into an arc length table.
+
+   liftPoint's parameter is a fraction of the chord, not of the arc, and the
+   bow is a sine, so the curve covers ground fastest at both ends and slowest
+   in the middle. Advancing that parameter at a steady rate therefore made the
+   nib run about 13% fast leaving the first stroke, sag through the middle of
+   the travel, and arrive fast at the top of the second stroke, where it then
+   dropped to the writing speed. That handoff was the visible slowdown. The
+   table below is indexed by distance instead, so the travel is as even as
+   the strokes on either side of it. */
+function liftTable(curve) {
+  var n = 128, pts = [liftPoint(curve, 0)], cum = [0];
   for (var i = 1; i <= n; i++) {
-    var q = liftPoint(from, to, i / n);
-    L += Math.hypot(q.x - prev.x, q.y - prev.y);
-    prev = q;
+    var q = liftPoint(curve, i / n);
+    cum.push(cum[i - 1] + Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y));
+    pts.push(q);
   }
-  return L;
+  return { pts: pts, cum: cum, len: cum[n] };
+}
+
+/* the point s units along that arc */
+function liftAt(tbl, s) {
+  var cum = tbl.cum, lo = 0, hi = cum.length - 1;
+  while (lo < hi - 1) {
+    var mid = (lo + hi) >> 1;
+    if (cum[mid] <= s) lo = mid; else hi = mid;
+  }
+  var span = cum[hi] - cum[lo];
+  var f = span > 1e-6 ? (s - cum[lo]) / span : 0;
+  var a = tbl.pts[lo], b = tbl.pts[hi];
+  return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
 }
 
 function pointAt(i, drawn) {
@@ -114,13 +136,41 @@ function pointAt(i, drawn) {
 var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1, lastHeadR = -1;
 var headSpeed = 0, HEAD_R = 24, CORE_R = 6.5, lastGlow = '';
 
-/* the lift arc, bowed off the chord so it reads as the pen leaving the page */
-function liftPoint(from, to, t) {
-  var dx = to.x - from.x, dy = to.y - from.y;
-  var bow = Math.sqrt(dx * dx + dy * dy) * 0.17 * Math.sin(Math.PI * t);
-  var len = Math.hypot(dx, dy) || 1;
-  return { x: from.x + dx * t - (dy / len) * bow,
-           y: from.y + dy * t + (dx / len) * bow };
+/* The travel between the two strokes, as a cubic that leaves along the
+   direction the first stroke was going and arrives along the direction the
+   second one sets off in. A symmetric bow off the chord met both strokes at
+   a corner, and a corner costs visible distance in the frame that crosses
+   it: the nib appeared to hesitate at the top of the second stroke. Matching
+   the tangents removes the corner, so the pen carries its own momentum
+   through the lift the way a hand does. */
+function liftCurve(from, to, t1, t2) {
+  var chord = Math.hypot(to.x - from.x, to.y - from.y);
+  /* Asymmetric on purpose. Arrival is what needed fixing, so the nib comes
+     into the second stroke fully aligned with it. Departure gets a short
+     handle only: the first stroke ends heading away from where the travel is
+     going, and matching that tangent hard made the pen loop backwards out of
+     the mark before turning around, which is both longer and not what a hand
+     does. A hand lifts and goes. */
+  var d1 = chord * 0.10, d2 = chord * 0.38;
+  return [from,
+          { x: from.x + t1[0] * d1, y: from.y + t1[1] * d1 },
+          { x: to.x   - t2[0] * d2, y: to.y   - t2[1] * d2 },
+          to];
+}
+
+function liftPoint(c, t) {
+  var u = 1 - t, a = u * u * u, b = 3 * u * u * t, e = 3 * u * t * t, f = t * t * t;
+  return { x: a * c[0].x + b * c[1].x + e * c[2].x + f * c[3].x,
+           y: a * c[0].y + b * c[1].y + e * c[2].y + f * c[3].y };
+}
+
+/* unit direction of a stroke at one of its ends */
+function edgeDir(i, at, back) {
+  var a = pointAt(i, clamp(at - (back ? 14 : 0), 0, lens[i]));
+  var b = pointAt(i, clamp(at + (back ? 0 : 14), 0, lens[i]));
+  if (!a || !b) return [1, 0];
+  var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+  return L > 1e-6 ? [dx / L, dy / L] : [1, 0];
 }
 
 function drawMark(p, dt) {
@@ -153,7 +203,7 @@ function drawMark(p, dt) {
       /* off the page now, travelling to the next stroke at the speed it was
          writing at, dimming across the lift rather than stepping */
       var t = local / seg.len;
-      var lp = liftPoint(seg.from, seg.to, t);
+      var lp = liftAt(seg.tbl, local);
       hx = lp.x; hy = lp.y;
       var fade = smoothstep(t, 0, 0.3) * (1 - smoothstep(t, 0.7, 1));
       headOp = 1 - 0.72 * fade;
