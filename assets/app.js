@@ -42,11 +42,15 @@ var VB = { x: 292, y: 256, w: 426, h: 496 };
 
 /* The draw is a two stroke signature, not one continuous line. Between them
    the pen lifts: the head keeps moving, dimmed, along a short arc to where
-   the second stroke begins, instead of teleporting across the mark. LIFT is
-   the share of the draw window that travel occupies. */
-var LIFT = 0.07;
-var plan = [];        /* [{i, a, b}] scroll sub-windows, one per stroke */
-var liftA = 0, liftB = 0;
+   the second stroke begins, instead of teleporting across the mark.
+
+   The plan below is measured in units of distance, not in shares of the
+   clock. That is what holds the whole sequence to one speed: a second of
+   time always buys the same amount of travel, so the lift costs exactly as
+   long as its own length warrants and no part of the draw runs faster or
+   slower than any other part. */
+var plan = [];        /* [{kind, at, len, ...}] one pass, in travel order */
+var runTotal = 0;
 
 function measureMark() {
   lens = marks.map(function (m) { return m.getTotalLength(); });
@@ -69,16 +73,32 @@ function measureMark() {
     m.style.strokeDashoffset = lens[i].toFixed(2);
   });
 
-  /* Each stroke gets a share of the window proportional to its own length, so
-     the head writes at one speed across both. The lift sits between them. */
-  plan = [];
-  var cursor = 0, gaps = marks.length - 1, span = 1 - LIFT * gaps;
+  /* Stroke, lift, stroke, laid end to end as one continuous run of travel. */
+  plan = []; runTotal = 0;
   for (var k = 0; k < marks.length; k++) {
-    var share = total ? (lens[k] / total) * span : span;
-    plan.push({ i: k, a: cursor, b: cursor + share });
-    cursor += share;
-    if (k < gaps) { liftA = cursor; cursor += LIFT; liftB = cursor; }
+    plan.push({ kind: 'draw', i: k, at: runTotal, len: lens[k] });
+    runTotal += lens[k];
+    if (k < marks.length - 1) {
+      var from = pointAt(k, lens[k]), to = pointAt(k + 1, 0);
+      if (from && to) {
+        var arc = liftLength(from, to);
+        plan.push({ kind: 'lift', from: from, to: to, at: runTotal, len: arc });
+        runTotal += arc;
+      }
+    }
   }
+}
+
+/* The lift arc's true length, so the travel can be paid for at the same rate
+   as the strokes instead of taking a flat share of the clock. */
+function liftLength(from, to) {
+  var n = 40, L = 0, prev = liftPoint(from, to, 0);
+  for (var i = 1; i <= n; i++) {
+    var q = liftPoint(from, to, i / n);
+    L += Math.hypot(q.x - prev.x, q.y - prev.y);
+    prev = q;
+  }
+  return L;
 }
 
 function pointAt(i, drawn) {
@@ -94,15 +114,6 @@ function pointAt(i, drawn) {
 var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1, lastHeadR = -1;
 var headSpeed = 0, HEAD_R = 24, CORE_R = 6.5, lastGlow = '';
 
-/* A pen does not move at one speed. It slows into the end of a stroke and
-   picks up again out of the next one. Blending a little smootherstep into
-   the linear map gives that cadence without ever reversing, so the draw
-   still tracks the scroll one to one. */
-function penEase(t) {
-  var s = t * t * t * (t * (t * 6 - 15) + 10);
-  return t * 0.56 + s * 0.44;
-}
-
 /* the lift arc, bowed off the chord so it reads as the pen leaving the page */
 function liftPoint(from, to, t) {
   var dx = to.x - from.x, dy = to.y - from.y;
@@ -113,43 +124,45 @@ function liftPoint(from, to, t) {
 }
 
 function drawMark(p, dt) {
-  if (!total || !plan.length) return null;
-  /* the mark finishes a little before the scroll does, so the settle has a
-     beat of stillness with the whole logo lit before the buttons arrive */
+  if (!runTotal || !plan.length) return null;
+  /* the mark finishes a little before the timeline does, so the intro has a
+     beat of stillness with the whole logo lit before it hands the page over */
   var q = clamp(p / 0.88, 0, 1);
+  var run = q * runTotal;          /* units travelled: linear in time, always */
   var hx = null, hy = null, headOp = 0;
 
-  for (var i = 0; i < plan.length; i++) {
-    var s = plan[i], len = lens[s.i];
-    var local = clamp((q - s.a) / (s.b - s.a), 0, 1);
-    var drawn = penEase(local) * len;
-    var off = len - drawn;
+  for (var s = 0; s < plan.length; s++) {
+    var seg = plan[s];
+    var local = clamp(run - seg.at, 0, seg.len);
 
-    if (lastOff[s.i] === undefined || Math.abs(off - lastOff[s.i]) > 0.1) {
-      lastOff[s.i] = off;
-      marks[s.i].style.strokeDashoffset = off.toFixed(2);
-    }
-    /* the head belongs to whichever stroke is mid write */
-    if (local > 0 && local < 1) {
-      var pt = pointAt(s.i, drawn);
-      if (pt) { hx = pt.x; hy = pt.y; headOp = 1; }
-    }
-  }
-
-  /* between the strokes the head travels instead of teleporting */
-  if (hx === null && plan.length > 1 && q > liftA && q < liftB) {
-    var from = pointAt(plan[0].i, lens[plan[0].i]);
-    var to   = pointAt(plan[1].i, 0);
-    if (from && to) {
-      var t = (q - liftA) / (liftB - liftA);
-      var lp = liftPoint(from, to, t);
+    if (seg.kind === 'draw') {
+      var off = seg.len - local;
+      if (lastOff[seg.i] === undefined || Math.abs(off - lastOff[seg.i]) > 0.1) {
+        lastOff[seg.i] = off;
+        marks[seg.i].style.strokeDashoffset = off.toFixed(2);
+      }
+      /* The head belongs to whichever stroke is mid write. Later segments
+         overwrite earlier ones, so the nib always sits on the newest work. */
+      if (local > 0) {
+        var pt = pointAt(seg.i, local);
+        if (pt) { hx = pt.x; hy = pt.y; headOp = 1; }
+      }
+    } else if (run > seg.at && run < seg.at + seg.len) {
+      /* off the page now, travelling to the next stroke at the speed it was
+         writing at, dimming across the lift rather than stepping */
+      var t = local / seg.len;
+      var lp = liftPoint(seg.from, seg.to, t);
       hx = lp.x; hy = lp.y;
-      /* the nib is off the page, so the light dims, but it dims across the
-         lift rather than stepping: a hard 1 to 0.3 is a flicker, not a lift */
       var fade = smoothstep(t, 0, 0.3) * (1 - smoothstep(t, 0.7, 1));
       headOp = 1 - 0.72 * fade;
     }
   }
+
+  /* The nib lifts off the page at the finish rather than blinking out. This
+     is brightness, not pace: the line itself is still travelling at exactly
+     the speed it has held the whole way. */
+  var tail = runTotal - run;
+  if (tail < 90) headOp *= clamp(tail / 90, 0, 1);
 
   /* the ambient bloom rises as the mark fills in. One opacity write on a
      promoted layer: no raster work, whatever the glow looks like. */
@@ -206,20 +219,13 @@ var intro = 'idle';                 /* idle | playing | done */
 var elapsed = 0, lit = false;
 var rafId = null, lastTick = 0;
 
-/* Mostly linear, so the stroke reads as one confident movement, with just
-   enough ease at each end that it starts and stops rather than snapping. */
-function introEase(t) {
-  var s = t * t * t * (t * (t * 6 - 15) + 10);
-  return t * 0.3 + s * 0.7;
-}
-
 function frame(now) {
   var dt = Math.min(64, now - (lastTick || now)) / 1000;
   lastTick = now;
   elapsed += dt * 1000;
 
   var raw = clamp(elapsed / DRAW_MS, 0, 1);
-  var head = drawMark(introEase(raw), dt);
+  var head = drawMark(raw, dt);
   if (window.__fieldFocus) window.__fieldFocus(head, raw);
 
   /* the words arrive while the line is still moving, not after it stops */
