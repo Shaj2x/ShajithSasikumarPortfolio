@@ -296,11 +296,6 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .repos{margin-top:48px;display:grid;gap:1px;background:var(--line);border-block:1px solid var(--line)}
 @media (min-width:760px){.repos{grid-template-columns:1fr 1fr}}
 .repo{background:var(--canvas);padding:26px clamp(20px,2.4vw,30px);min-height:132px}
-.repo.skel{position:relative;overflow:hidden}
-.repo.skel::after{content:"";position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);
-  animation:sweep 1.5s linear infinite}
-@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .repo h3{font-size:1.06rem;letter-spacing:-.015em}
 .repo h3 a{transition:color .4s var(--ease-soft)}
 .repo h3 a:hover{color:var(--accent)}
@@ -308,10 +303,6 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .repo .meta{margin-top:16px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--text-dim);display:flex;gap:16px;flex-wrap:wrap}
 .repo .meta .live{color:var(--accent)}
-.repo-err{background:var(--canvas);padding:26px;border-left:2px solid var(--accent);
-  opacity:0;transform:translateY(10px);
-  transition:opacity var(--t-enter) var(--ease-out),transform var(--t-enter) var(--ease-out)}
-.repos.ready .repo-err{opacity:1;transform:none}
 .more{display:inline-block;margin-top:34px;font-family:var(--mono);font-size:11.5px;
   letter-spacing:.08em;text-transform:uppercase;color:var(--accent);
   border-bottom:1px solid var(--accent-muted);padding-bottom:4px;
@@ -408,7 +399,7 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 
 /* the mark itself, held in the right half */
 .mark-wrap{position:absolute;top:50%;left:68%;transform:translate(-50%,-50%);
-  width:min(46vh,34vw);aspect-ratio:438/508;pointer-events:none}
+  width:min(46vh,34vw);aspect-ratio:426/496;pointer-events:none}
 .hero-mark,.head-layer{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 
 .hero-mark{color:var(--text-primary)}
@@ -558,7 +549,10 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .game-hint b{color:var(--text-primary);font-weight:400}
 .game-frame{position:relative;display:inline-block;max-width:100%;margin-top:18px;
   border:1px solid var(--line-bright);background:var(--canvas)}
-.game-frame canvas{display:block;max-width:100%;height:auto;background:var(--canvas)}
+.game-frame canvas{display:block;max-width:100%;height:auto;background:var(--canvas);touch-action:manipulation}
+/* while a game is live the board owns the pointer: no page scroll under a
+   dragging thumb, and the paddle is the cursor */
+.game-frame canvas.playing{touch-action:none;cursor:none}
 .game-over{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:18px;
   background:rgba(11,13,16,.86);opacity:1;transition:opacity var(--t-ui) var(--ease-out)}
 .game-over[hidden]{display:none}

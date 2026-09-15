@@ -82,7 +82,19 @@ bandEls.forEach(function (el) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var SAMPLES = 480;   /* points cached per stroke; ~0.3px of error at hero size */
+var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
+
+/* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
+   All three must agree or the head drifts off the line. */
+var VB = { x: 292, y: 256, w: 426, h: 496 };
+
+/* The draw is a two stroke signature, not one continuous line. Between them
+   the pen lifts: the head keeps moving, dimmed, along a short arc to where
+   the second stroke begins, instead of teleporting across the mark. LIFT is
+   the share of the draw window that travel occupies. */
+var LIFT = 0.07;
+var plan = [];        /* [{i, a, b}] scroll sub-windows, one per stroke */
+var liftA = 0, liftB = 0;
 
 function measureMark() {
   lens = marks.map(function (m) { return m.getTotalLength(); });
@@ -101,9 +113,20 @@ function measureMark() {
   });
 
   marks.forEach(function (m, i) {
-    m.style.strokeDasharray = lens[i].toFixed(1);
-    m.style.strokeDashoffset = lens[i].toFixed(1);
+    m.style.strokeDasharray = lens[i].toFixed(2);
+    m.style.strokeDashoffset = lens[i].toFixed(2);
   });
+
+  /* Each stroke gets a share of the window proportional to its own length, so
+     the head writes at one speed across both. The lift sits between them. */
+  plan = [];
+  var cursor = 0, gaps = marks.length - 1, span = 1 - LIFT * gaps;
+  for (var k = 0; k < marks.length; k++) {
+    var share = total ? (lens[k] / total) * span : span;
+    plan.push({ i: k, a: cursor, b: cursor + share });
+    cursor += share;
+    if (k < gaps) { liftA = cursor; cursor += LIFT; liftB = cursor; }
+  }
 }
 
 function pointAt(i, drawn) {
@@ -116,40 +139,92 @@ function pointAt(i, drawn) {
   return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t };
 }
 
-var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1;
+var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1, lastHeadR = -1;
+var headSpeed = 0, HEAD_R = 24, CORE_R = 6.5;
 
-function drawMark(p) {
-  if (!total) return;
+/* A pen does not move at one speed. It slows into the end of a stroke and
+   picks up again out of the next one. Blending a little smootherstep into
+   the linear map gives that cadence without ever reversing, so the draw
+   still tracks the scroll one to one. */
+function penEase(t) {
+  var s = t * t * t * (t * (t * 6 - 15) + 10);
+  return t * 0.56 + s * 0.44;
+}
+
+/* the lift arc, bowed off the chord so it reads as the pen leaving the page */
+function liftPoint(from, to, t) {
+  var dx = to.x - from.x, dy = to.y - from.y;
+  var bow = Math.sqrt(dx * dx + dy * dy) * 0.17 * Math.sin(Math.PI * t);
+  var len = Math.hypot(dx, dy) || 1;
+  return { x: from.x + dx * t - (dy / len) * bow,
+           y: from.y + dy * t + (dx / len) * bow };
+}
+
+function drawMark(p, dt) {
+  if (!total || !plan.length) return null;
   /* the mark finishes a little before the scroll does, so the settle has a
      beat of stillness with the whole logo lit before the buttons arrive */
-  var drawnTotal = clamp(p / 0.88, 0, 1) * total;
-  var acc = 0, hx = null, hy = null;
+  var q = clamp(p / 0.88, 0, 1);
+  var hx = null, hy = null, headOp = 0;
 
-  for (var i = 0; i < marks.length; i++) {
-    var len = lens[i];
-    var drawn = clamp(drawnTotal - acc, 0, len);
+  for (var i = 0; i < plan.length; i++) {
+    var s = plan[i], len = lens[s.i];
+    var local = clamp((q - s.a) / (s.b - s.a), 0, 1);
+    var drawn = penEase(local) * len;
     var off = len - drawn;
-    if (lastOff[i] === undefined || Math.abs(off - lastOff[i]) > 0.3) {
-      lastOff[i] = off;
-      marks[i].style.strokeDashoffset = off.toFixed(1);
+
+    if (lastOff[s.i] === undefined || Math.abs(off - lastOff[s.i]) > 0.1) {
+      lastOff[s.i] = off;
+      marks[s.i].style.strokeDashoffset = off.toFixed(2);
     }
-    if (drawn > 0.5 && drawn < len - 0.5) {
-      var pt = pointAt(i, drawn);
-      if (pt) { hx = pt.x; hy = pt.y; }
+    /* the head belongs to whichever stroke is mid write */
+    if (local > 0 && local < 1) {
+      var pt = pointAt(s.i, drawn);
+      if (pt) { hx = pt.x; hy = pt.y; headOp = 1; }
     }
-    acc += len;
   }
 
-  /* the head only exists while something is being written */
-  var headOp = (hx === null) ? 0 : 1;
-  if (headOp !== lastHeadOp) {
-    lastHeadOp = headOp;
-    markSvg.parentNode.style.setProperty('--head', headOp);
+  /* between the strokes the head travels instead of teleporting */
+  if (hx === null && plan.length > 1 && q > liftA && q < liftB) {
+    var from = pointAt(plan[0].i, lens[plan[0].i]);
+    var to   = pointAt(plan[1].i, 0);
+    if (from && to) {
+      var t = (q - liftA) / (liftB - liftA);
+      var lp = liftPoint(from, to, t);
+      hx = lp.x; hy = lp.y;
+      /* the nib is off the page, so the light dims, but it dims across the
+         lift rather than stepping: a hard 1 to 0.3 is a flicker, not a lift */
+      var fade = smoothstep(t, 0, 0.3) * (1 - smoothstep(t, 0.7, 1));
+      headOp = 1 - 0.72 * fade;
+    }
   }
-  if (hx !== null && (Math.abs(hx - lastHeadX) > 0.5 || Math.abs(hy - lastHeadY) > 0.5)) {
-    lastHeadX = hx; lastHeadY = hy;
-    headOut.setAttribute('cx', hx.toFixed(1)); headOut.setAttribute('cy', hy.toFixed(1));
-    headIn.setAttribute('cx', hx.toFixed(1));  headIn.setAttribute('cy', hy.toFixed(1));
+
+  if (Math.abs(headOp - lastHeadOp) > 0.004) {
+    lastHeadOp = headOp;
+    markSvg.parentNode.style.setProperty('--head', headOp.toFixed(3));
+  }
+
+  if (hx !== null) {
+    /* the light swells with how fast it is being driven, the way a nib
+       spreads under speed. One pole smoothed so it never flickers. */
+    if (lastHeadX >= 0 && dt > 0) {
+      var v = Math.hypot(hx - lastHeadX, hy - lastHeadY) / dt;   /* units per second */
+      headSpeed += (v - headSpeed) * Math.min(1, dt * 9);
+    }
+    var grow = 1 + clamp(headSpeed / 900, 0, 1) * 0.5;
+    var r = HEAD_R * grow;
+    if (Math.abs(r - lastHeadR) > 0.2) {
+      lastHeadR = r;
+      headOut.setAttribute('r', r.toFixed(2));
+      headIn.setAttribute('r', (CORE_R * (1 + (grow - 1) * 0.45)).toFixed(2));
+    }
+    if (Math.abs(hx - lastHeadX) > 0.12 || Math.abs(hy - lastHeadY) > 0.12) {
+      lastHeadX = hx; lastHeadY = hy;
+      headOut.setAttribute('cx', hx.toFixed(2)); headOut.setAttribute('cy', hy.toFixed(2));
+      headIn.setAttribute('cx', hx.toFixed(2));  headIn.setAttribute('cy', hy.toFixed(2));
+    }
+  } else {
+    headSpeed = 0;
   }
   return hx === null ? null : { x: hx, y: hy };
 }
@@ -213,7 +288,7 @@ function tick(now) {
   if (settled) { shown = target; vel = 0; rafId = null; lastTick = 0; }
   else { rafId = requestAnimationFrame(tick); }
 
-  var head = drawMark(shown);
+  var head = drawMark(shown, dt);
   updateCaptions(shown);
   if (window.__fieldFocus) window.__fieldFocus(head, shown);
 }
@@ -248,7 +323,7 @@ function enableScrub() {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', measureMark);
   bands.forEach(function (b) { b.op = -1; b.k = -1; });
-  lastOff = []; lastHeadOp = -1;
+  lastOff = []; lastHeadOp = -1; lastHeadX = -1; lastHeadR = -1; headSpeed = 0;
   updateCaptions(heroProgress());
   onScroll();
 }
@@ -315,8 +390,8 @@ reduceMQ.addEventListener('change', function (e) {
     var wrap = document.querySelector('.mark-wrap');
     if (!wrap) return;
     var r = wrap.getBoundingClientRect(), sr = c.getBoundingClientRect();
-    focus.x = r.left - sr.left + ((head.x - 286) / 438) * r.width;
-    focus.y = r.top - sr.top + ((head.y - 250) / 508) * r.height;
+    focus.x = r.left - sr.left + ((head.x - VB.x) / VB.w) * r.width;
+    focus.y = r.top - sr.top + ((head.y - VB.y) / VB.h) * r.height;
     focus.a += (1 - focus.a) * 0.12;
   };
 
@@ -461,73 +536,46 @@ document.addEventListener('visibilitychange', function () {
   reduceMQ.addEventListener('change', function (e) { if (e.matches) pinLine(); });
 })();
 
-/* ---------- the live GitHub feed ---------- */
+/* ---------- the work list ----------
+   The cards are real markup in index.html, not something JavaScript has to
+   build. The old version fetched first and rendered second, which meant a
+   rate limited GitHub, an offline visitor, or any page that blocks the API
+   got an apology card where the work should be. Now the work is always
+   there and the fetch only refreshes what genuinely goes stale: the date,
+   the language, the star count. If it fails, nothing changes.            */
 (function repos() {
   var host = document.getElementById('repos');
   if (!host) return;
 
-  var NOTES = {
-    Mercatus: 'A strategy game that teaches stocks, crypto and market timing through simulated trades.',
-    StatStack: 'A statistics tool for stacking and comparing data sets in the browser.'
-  };
-  var DEMOS = {
-    'Raptors-Slot-Machine': 'https://shaj2x.github.io/Raptors-Slot-Machine/',
-    'Raptors-BlackJack': 'https://shaj2x.github.io/Raptors-BlackJack/',
-    StatStack: 'https://shaj2x.github.io/StatStack/',
-    Mercatus: 'https://shaj2x.github.io/Mercatus/'
-  };
-  var WIP = ['MarkWise', 'HarmonAI'];
+  var cards = {};
+  [].forEach.call(host.querySelectorAll('.repo'), function (el) {
+    cards[el.dataset.repo] = el;
+  });
+  if (!Object.keys(cards).length) return;
 
-  function pretty(n) { return n.replace(/---.*$/, '').replace(/[-_]+/g, ' ').trim(); }
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
+  function set(el, field, text, show) {
+    var node = el.querySelector('[data-f="' + field + '"]');
+    if (!node) return;
+    if (!show) { node.hidden = true; return; }
+    node.textContent = text;
+    node.hidden = false;
   }
 
-  fetch('https://api.github.com/users/Shaj2x/repos?sort=updated&per_page=10')
+  fetch('https://api.github.com/users/Shaj2x/repos?per_page=100')
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
-      var list = data.filter(function (r) {
-        return r.name !== 'Shaj2x' && r.name !== 'Shaj2x.github.io';
-      }).slice(0, 6);
-
-      if (!list.length) {
-        host.innerHTML = '<div class="repo-err"><p>No public repositories right now.</p></div>';
-        requestAnimationFrame(function () { host.classList.add('ready', 'done'); });
-        return;
-      }
-
-      host.innerHTML = list.map(function (r) {
-        var demo = DEMOS[r.name];
-        var when = new Date(r.updated_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'short' });
-        return '<article class="repo">' +
-          '<h3><a href="' + esc(r.html_url) + '" target="_blank" rel="noopener noreferrer">' + esc(pretty(r.name)) + '</a></h3>' +
-          '<p>' + esc(NOTES[r.name] || r.description || 'No description yet.') + '</p>' +
-          '<p class="meta">' +
-            '<span>' + esc(when) + '</span>' +
-            (r.language ? '<span>' + esc(r.language) + '</span>' : '') +
-            (r.stargazers_count ? '<span>' + r.stargazers_count + ' stars</span>' : '') +
-            (r.forks_count ? '<span>' + r.forks_count + ' forks</span>' : '') +
-            (WIP.indexOf(r.name) > -1 ? '<span>In progress</span>' : '') +
-            (demo ? '<a class="live" href="' + esc(demo) + '" target="_blank" rel="noopener noreferrer">Live demo</a>' : '') +
-          '</p></article>';
-      }).join('');
-      host.setAttribute('aria-busy', 'false');
-      /* next frame, so the browser has the cards laid out before they move */
-      requestAnimationFrame(function () {
-        host.classList.add('ready');
-        setTimeout(function () { host.classList.add('done'); }, 700);
+      data.forEach(function (r) {
+        var el = cards[r.name];
+        if (!el) return;
+        var when = new Date(r.pushed_at || r.updated_at)
+          .toLocaleDateString('en-CA', { year: 'numeric', month: 'short' });
+        set(el, 'when', when, true);
+        set(el, 'lang', r.language || '', !!r.language);
+        set(el, 'stars', r.stargazers_count + (r.stargazers_count === 1 ? ' star' : ' stars'),
+            r.stargazers_count > 0);
       });
     })
-    .catch(function () {
-      host.setAttribute('aria-busy', 'false');
-      host.innerHTML = '<div class="repo-err"><p>GitHub did not answer, which is usually a rate limit. ' +
-        '<a class="more" href="https://github.com/Shaj2x?tab=repositories" target="_blank" rel="noopener noreferrer">Browse the repositories directly</a></p></div>';
-      /* the error card enters the same way the cards would have, so a failed
-         fetch does not read as a different kind of page */
-      requestAnimationFrame(function () { host.classList.add('ready', 'done'); });
-    });
+    .catch(function () { /* the page already says the truth without this */ });
 })();
 
 /* ---------- FAQ: an accordion that does not snap ----------
@@ -692,7 +740,44 @@ document.addEventListener('visibilitychange', function () {
   var mark = new Image();
   mark.src = 'assets/ss-mark.png';
   var markReady = false;
-  mark.onload = function () { markReady = true; };
+  mark.onload = function () { markReady = true; sprites = {}; };
+
+  /* The mark is a white glyph on a black field. Drawn straight onto a near
+     black board it all but vanished, which is most of why Pong played badly:
+     you could not see the ball. So the piece is built once instead, as a lit
+     disc with the monogram knocked out of it. Still the logo, now readable
+     at speed. Cached per size and colour; both games share it. */
+  var sprites = {};
+  function sprite(size, colour) {
+    if (!markReady) return null;
+    var s = Math.max(12, Math.ceil(size)), key = s + '|' + colour;
+    if (key in sprites) return sprites[key];
+
+    var c = document.createElement('canvas'); c.width = c.height = s;
+    var x = c.getContext('2d');
+    x.fillStyle = colour;
+    x.beginPath(); x.arc(s / 2, s / 2, s / 2, 0, 6.2832); x.fill();
+
+    try {
+      /* the glyph's own brightness becomes the eraser's alpha */
+      var m = document.createElement('canvas'); m.width = m.height = s;
+      var mx = m.getContext('2d');
+      mx.drawImage(mark, 0, 0, s, s);
+      var img = mx.getImageData(0, 0, s, s), d = img.data;
+      for (var i = 0; i < d.length; i += 4) {
+        var lum = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 255;
+        d[i] = d[i + 1] = d[i + 2] = 0;
+        d[i + 3] = Math.round(Math.min(1, lum * 1.3) * 255);
+      }
+      mx.putImageData(img, 0, 0);
+      x.globalCompositeOperation = 'destination-out';
+      x.drawImage(m, 0, 0);
+      x.globalCompositeOperation = 'source-over';
+    } catch (e) { /* a plain disc still plays perfectly well */ }
+
+    sprites[key] = c;
+    return c;
+  }
 
   function paintTokens() {
     var cs = getComputedStyle(document.documentElement);
@@ -702,24 +787,115 @@ document.addEventListener('visibilitychange', function () {
              font: "'Sora', system-ui, sans-serif" };
   }
 
-  /* ---- Pong ---- */
+  /* Whichever game is on screen and running. Everything that can take the
+     player's attention away, switching tabs, scrolling past, hiding the
+     window, goes through pause() so a game is never simulating, and never
+     swallowing arrow keys, while nobody is looking at it. */
+  var live = null;
+  function claim(g) { if (live && live !== g) live.pause(); live = g; }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && live) live.pause();
+  });
+
+  /* ---- Pong ----
+     Everything below is in pixels per second and stepped at a fixed 120Hz,
+     so the game plays identically on a 60Hz laptop and a 120Hz phone. The
+     old build moved the ball a fixed amount per frame, which made it run at
+     double speed on a high refresh display. */
   (function pong() {
     var cv = document.getElementById('pong'); if (!cv) return;
     var ctx = cv.getContext('2d');
-    var W = 600, H = 400, PW = 12, PH = 80, R = 18, SPEED = 5, BALL = 4, WIN = 5;
-    var over = document.getElementById('pong-over'), result = document.getElementById('pong-result'),
-        scoreEl = document.getElementById('pong-score'), startBtn = document.getElementById('pong-start');
-    var g, raf = null, keys = {}, running = false;
+    var W = 600, H = 400, PW = 12, PH = 76, R = 13, INSET = 12, WIN = 5;
+    var PADDLE_V = 470, CPU_V = 300, SERVE_V = 330, MAX_V = 640, STEP = 1 / 120;
 
-    function reset() { g.bx = W / 2; g.by = H / 2;
-      g.vx = BALL * (Math.random() > 0.5 ? 1 : -1); g.vy = BALL * 0.6 * (Math.random() > 0.5 ? 1 : -1); }
+    var over    = document.getElementById('pong-over'),
+        result  = document.getElementById('pong-result'),
+        scoreEl = document.getElementById('pong-score'),
+        startBtn= document.getElementById('pong-start');
 
-    function stop(msg) {
-      running = false;
-      if (raf) cancelAnimationFrame(raf); raf = null;
-      result.textContent = msg || '';
-      over.hidden = false;
-      startBtn.textContent = msg ? 'Play again' : 'Start game';
+    var g = null, raf = null, keys = {}, acc = 0, last = 0, state = 'idle';
+    var pointerY = null;
+
+    function fresh() {
+      return { py: H / 2 - PH / 2, cy: H / 2 - PH / 2, ps: 0, cs: 0,
+               bx: W / 2, by: H / 2, vx: 0, vy: 0, wait: 0, rally: 0, bias: 0 };
+    }
+
+    function serve(toward) {
+      g.bx = W / 2; g.by = H / 2;
+      var ang = (Math.random() - 0.5) * 0.7;          /* never a flat serve */
+      g.vx = Math.cos(ang) * SERVE_V * toward;
+      g.vy = Math.sin(ang) * SERVE_V;
+      g.wait = 0.85;                                   /* a beat before it moves */
+      g.rally = 0;
+      g.bias = (Math.random() - 0.5) * 96;             /* this rally's CPU error */
+    }
+
+    function score() { scoreEl.textContent = 'You ' + g.ps + ' · CPU ' + g.cs; }
+
+    /* one 1/120s slice of physics */
+    function step(dt) {
+      var held = g.wait > 0;                 /* the ball waits, the paddles do not */
+      if (held) g.wait -= dt;
+
+      /* --- player paddle: pointer wins if the pointer is on the board --- */
+      var want = null;
+      if (pointerY !== null) want = pointerY - PH / 2;
+      else {
+        var dir = (keys.up ? -1 : 0) + (keys.down ? 1 : 0);
+        if (dir) want = g.py + dir * PADDLE_V * dt;
+      }
+      if (want !== null) {
+        /* capped, so a flicked mouse cannot teleport the paddle onto the ball */
+        var limit = PADDLE_V * dt;
+        g.py += clamp(want - g.py, -limit, limit);
+        g.py = clamp(g.py, 0, H - PH);
+      }
+
+      /* --- CPU: it does not read the ball until the ball has crossed into
+             its half, it aims at a point offset by this rally's error, and it
+             is a shade slower than the player. Beatable if you move, punishing
+             if you do not. --- */
+      var reading = g.vx > 0 && g.bx > W * 0.42;
+      var aim = reading ? g.by + g.bias : H / 2;
+      var d = aim - (g.cy + PH / 2);
+      if (Math.abs(d) > 14) g.cy += clamp(d, -CPU_V * dt, CPU_V * dt);
+      g.cy = clamp(g.cy, 0, H - PH);
+
+      /* --- ball --- */
+      if (held) return;
+      g.bx += g.vx * dt;
+      g.by += g.vy * dt;
+
+      if (g.by - R < 0)     { g.by = R;     g.vy = Math.abs(g.vy); }
+      if (g.by + R > H)     { g.by = H - R; g.vy = -Math.abs(g.vy); }
+
+      hit(INSET + PW, g.py, 1);        /* player face, ball must be moving left */
+      hit(W - INSET - PW, g.cy, -1);   /* cpu face */
+
+      if (g.bx + R < 0)      { g.cs++; score(); if (g.cs >= WIN) return finish('CPU wins'); serve(1); }
+      else if (g.bx - R > W) { g.ps++; score(); if (g.ps >= WIN) return finish('You win'); serve(-1); }
+    }
+
+    /* Resolves against a paddle face and pushes the ball clear, so it can
+       never end a step inside the paddle and rattle there. */
+    function hit(faceX, top, side) {
+      if (side > 0) { if (g.vx >= 0 || g.bx - R > faceX) return; }
+      else          { if (g.vx <= 0 || g.bx + R < faceX) return; }
+      if (side > 0 && g.bx + R < faceX - PW) return;
+      if (side < 0 && g.bx - R > faceX + PW) return;
+      if (g.by + R < top || g.by - R > top + PH) return;
+
+      g.bx = faceX + side * R;
+      g.rally++;
+      /* where it lands on the paddle sets the angle, the way real Pong does */
+      var rel = clamp((g.by - (top + PH / 2)) / (PH / 2), -1, 1);
+      var ang = rel * 0.95;                                /* up to ~54 degrees */
+      var sp  = Math.min(MAX_V, Math.hypot(g.vx, g.vy) * 1.045 + 8);
+      g.vx = Math.cos(ang) * sp * side;
+      g.vy = Math.sin(ang) * sp;
+      if (side > 0) g.bias = (Math.random() - 0.5) * Math.max(46, 96 - g.rally * 5);
     }
 
     function draw() {
@@ -727,58 +903,123 @@ document.addEventListener('visibilitychange', function () {
       ctx.fillStyle = t.ground; ctx.fillRect(0, 0, W, H);
       ctx.setLineDash([8, 8]); ctx.strokeStyle = t.line; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = t.mark;
-      ctx.fillRect(10, g.py, PW, PH);
-      ctx.fillRect(W - PW - 10, g.cy, PW, PH);
-      if (markReady) {
-        ctx.save(); ctx.beginPath(); ctx.arc(g.bx, g.by, R, 0, 6.2832); ctx.clip();
-        ctx.drawImage(mark, g.bx - R, g.by - R, R * 2, R * 2); ctx.restore();
-      } else { ctx.beginPath(); ctx.arc(g.bx, g.by, R, 0, 6.2832); ctx.fill(); }
+
       ctx.fillStyle = t.dim; ctx.font = 'bold 48px ' + t.font; ctx.textAlign = 'center';
-      ctx.fillText(String(g.ps), W / 4, 60); ctx.fillText(String(g.cs), 3 * W / 4, 60);
+      ctx.fillText(String(g.ps), W / 4, 62); ctx.fillText(String(g.cs), 3 * W / 4, 62);
+
+      ctx.fillStyle = t.mark;
+      round(INSET, g.py, PW, PH); round(W - INSET - PW, g.cy, PW, PH);
+
+      /* the ball dims while it waits to be served, so the pause reads as one */
+      ctx.globalAlpha = g.wait > 0 ? 0.5 : 1;
+      var ball = sprite(R * 2 * 3, t.mark);       /* 3x, so it stays crisp */
+      ctx.save();
+      ctx.shadowColor = t.mark; ctx.shadowBlur = 18;
+      if (ball) ctx.drawImage(ball, g.bx - R, g.by - R, R * 2, R * 2);
+      else { ctx.fillStyle = t.mark; ctx.beginPath(); ctx.arc(g.bx, g.by, R, 0, 6.2832); ctx.fill(); }
+      ctx.restore();
+      ctx.globalAlpha = 1;
     }
 
-    function loop() {
-      if (keys.ArrowUp || keys.w) g.py = Math.max(0, g.py - SPEED);
-      if (keys.ArrowDown || keys.s) g.py = Math.min(H - PH, g.py + SPEED);
+    function round(x, y, w, h) {
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6); else ctx.rect(x, y, w, h);
+      ctx.fill();
+    }
 
-      var d = g.by - (g.cy + PH / 2);                 /* dead zone keeps the CPU beatable */
-      if (Math.abs(d) > 30) g.cy += Math.sign(d) * SPEED * 0.4;
-      g.cy = Math.max(0, Math.min(H - PH, g.cy));
-
-      g.bx += g.vx; g.by += g.vy;
-      if (g.by - R <= 0 || g.by + R >= H) g.vy *= -1;
-      if (g.bx - R <= PW + 10 && g.by >= g.py && g.by <= g.py + PH && g.vx < 0) {
-        g.vx *= -1.05; g.vy = ((g.by - g.py) / PH - 0.5) * BALL * 1.5;
-      }
-      if (g.bx + R >= W - PW - 10 && g.by >= g.cy && g.by <= g.cy + PH && g.vx > 0) {
-        g.vx *= -1.05; g.vy = ((g.by - g.cy) / PH - 0.5) * BALL * 1.5;
-      }
-      if (g.bx < 0) { g.cs++; score(); if (g.cs >= WIN) { draw(); return stop('CPU wins'); } reset(); }
-      else if (g.bx > W) { g.ps++; score(); if (g.ps >= WIN) { draw(); return stop('You win'); } reset(); }
-
+    function frame(now) {
+      if (state !== 'running') { raf = null; return; }
+      var dt = Math.min(0.1, (now - (last || now)) / 1000);
+      last = now;
+      acc += dt;
+      var budget = 30;                     /* never let a stalled tab fast forward */
+      while (acc >= STEP && budget-- > 0) { acc -= STEP; step(STEP); if (state !== 'running') break; }
+      if (acc > STEP) acc = 0;
       draw();
-      raf = requestAnimationFrame(loop);
+      raf = (state === 'running') ? requestAnimationFrame(frame) : null;
     }
 
-    function score() { scoreEl.textContent = 'You ' + g.ps + ' · CPU ' + g.cs; }
+    function run() {
+      state = 'running'; claim(api);
+      over.hidden = true;
+      cv.classList.add('playing');
+      last = 0; acc = 0;
+      if (raf === null) raf = requestAnimationFrame(frame);
+    }
 
-    function start() {
-      g = { py: H / 2 - PH / 2, cy: H / 2 - PH / 2, ps: 0, cs: 0 };
-      reset(); score();
-      over.hidden = true; running = true;
+    function halt() {
+      state = 'idle';
       if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(loop);
+      raf = null; keys = {};
+      if (live === api) live = null;
+      cv.classList.remove('playing');
     }
 
-    startBtn.addEventListener('click', start);
-    window.addEventListener('keydown', function (e) {
-      if (!running) return;
-      if (['ArrowUp', 'ArrowDown', 'w', 's'].indexOf(e.key) > -1) { e.preventDefault(); keys[e.key] = true; }
+    function finish(msg) {
+      halt();
+      result.textContent = msg;
+      startBtn.textContent = 'Play again';
+      over.hidden = false;
+      draw();
+    }
+
+    var api = {
+      pause: function () {
+        if (state !== 'running') return;
+        halt();
+        state = 'paused';
+        result.textContent = 'Paused';
+        startBtn.textContent = 'Resume';
+        over.hidden = false;
+        draw();
+      }
+    };
+
+    startBtn.addEventListener('click', function () {
+      if (state === 'paused') { run(); return; }   /* resume keeps the score */
+      g = fresh(); score(); serve(Math.random() > 0.5 ? 1 : -1);
+      result.textContent = '';
+      run();
     });
-    window.addEventListener('keyup', function (e) { keys[e.key] = false; });
-    document.addEventListener('visibilitychange', function () { if (document.hidden && running) stop(); });
-    g = { py: H / 2 - PH / 2, cy: H / 2 - PH / 2, ps: 0, cs: 0 }; reset(); draw();
+
+    /* --- pointer: the natural way to play Pong, and the only way on a phone --- */
+    function toBoard(e) {
+      var r = cv.getBoundingClientRect();
+      return (e.clientY - r.top) * (H / r.height);
+    }
+    cv.addEventListener('pointerdown', function (e) {
+      if (state !== 'running') return;
+      cv.setPointerCapture(e.pointerId); pointerY = clamp(toBoard(e), 0, H); e.preventDefault();
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (state !== 'running') return;
+      pointerY = clamp(toBoard(e), 0, H);
+      if (e.pointerType !== 'mouse') e.preventDefault();
+    });
+    /* A finger stops existing the moment it lifts, and the browser fires
+       pointerleave with it. Clearing the target there would park the paddle
+       after every tap, so only a mouse actually leaving the board hands
+       control back to the keyboard. */
+    cv.addEventListener('pointerleave', function (e) {
+      if (e.pointerType === 'mouse') pointerY = null;
+    });
+    cv.addEventListener('pointercancel', function (e) {
+      if (e.pointerType === 'mouse') pointerY = null;
+    });
+
+    /* --- keyboard: only claims the arrow keys while it is actually running,
+           so the rest of the page can still be scrolled with them --- */
+    var K = { ArrowUp: 'up', ArrowDown: 'down', w: 'up', s: 'down', W: 'up', S: 'down' };
+    window.addEventListener('keydown', function (e) {
+      if (state !== 'running') return;
+      var k = K[e.key]; if (!k) return;
+      e.preventDefault(); keys[k] = true; pointerY = null;
+    });
+    window.addEventListener('keyup', function (e) {
+      var k = K[e.key]; if (k) keys[k] = false;
+    });
+
+    g = fresh(); score(); draw();
   })();
 
   /* ---- Snake ---- */
@@ -788,7 +1029,7 @@ document.addEventListener('visibilitychange', function () {
     var W = 600, H = 400, CELL = 20, COLS = W / CELL, ROWS = H / CELL, TICK = 120;
     var over = document.getElementById('snake-over'), result = document.getElementById('snake-result'),
         scoreEl = document.getElementById('snake-score'), startBtn = document.getElementById('snake-start');
-    var s, timer = null, best = 0, running = false;
+    var s, timer = null, best = 0, running = false, api;
 
     function food(body) {
       var pt;
@@ -804,11 +1045,12 @@ document.addEventListener('visibilitychange', function () {
       for (var x = 0; x < COLS; x++) for (var y = 0; y < ROWS; y++)
         ctx.fillRect(x * CELL + CELL / 2, y * CELL + CELL / 2, 1, 1);
 
-      if (markReady) {
-        ctx.save(); ctx.beginPath();
-        ctx.arc(s.food.x * CELL + CELL / 2, s.food.y * CELL + CELL / 2, CELL / 2, 0, 6.2832);
-        ctx.clip(); ctx.drawImage(mark, s.food.x * CELL, s.food.y * CELL, CELL, CELL); ctx.restore();
-      } else { ctx.fillStyle = t.mark; ctx.fillRect(s.food.x * CELL, s.food.y * CELL, CELL, CELL); }
+      var pellet = sprite(CELL * 3, t.mark);
+      ctx.save();
+      ctx.shadowColor = t.mark; ctx.shadowBlur = 14;
+      if (pellet) ctx.drawImage(pellet, s.food.x * CELL, s.food.y * CELL, CELL, CELL);
+      else { ctx.fillStyle = t.mark; ctx.fillRect(s.food.x * CELL, s.food.y * CELL, CELL, CELL); }
+      ctx.restore();
 
       s.body.forEach(function (seg, i) {
         ctx.globalAlpha = 1 - (i / s.body.length) * 0.6;
@@ -825,6 +1067,7 @@ document.addEventListener('visibilitychange', function () {
     function stop(msg) {
       running = false;
       clearInterval(timer); timer = null;
+      if (live === api) live = null;
       best = Math.max(best, s.score);
       scoreEl.textContent = 'Score ' + s.score + ' · Best ' + best;
       result.textContent = msg || '';
@@ -854,7 +1097,7 @@ document.addEventListener('visibilitychange', function () {
       s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT',
             food: { x: 15, y: ROWS >> 1 }, score: 0 };
       scoreEl.textContent = 'Score 0 · Best ' + best;
-      over.hidden = true; running = true;
+      over.hidden = true; running = true; claim(api);
       clearInterval(timer); timer = setInterval(tick, TICK);
       draw();
     }
@@ -871,14 +1114,18 @@ document.addEventListener('visibilitychange', function () {
       e.preventDefault();
       if (dir !== OPP[s.dir]) s.next = dir;
     });
-    document.addEventListener('visibilitychange', function () { if (document.hidden && running) stop(); });
+    api = { pause: function () { if (running) stop('Paused'); } };
     s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT', food: { x: 15, y: ROWS >> 1 }, score: 0 };
     draw();
   })();
 
-  /* ---- tabs ---- */
+  /* ---- tabs ----
+     Switching away pauses whatever was running. The old build only hid the
+     panel, so the other game kept simulating out of sight and kept hold of
+     the arrow keys for the rest of the page. */
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
+      if (live) live.pause();
       tabs.forEach(function (t) {
         var on = t === tab;
         t.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -886,6 +1133,15 @@ document.addEventListener('visibilitychange', function () {
       });
     });
   });
+
+  /* scrolling the board out of view pauses too */
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      if (!es[0].isIntersecting && live) live.pause();
+    }, { threshold: 0.25 });
+    var stage = document.querySelector('.game-stage');
+    if (stage) io.observe(stage);
+  }
 })();
 
 })();
