@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A free Ontario Smart Serve practice test. 33 fresh questions every time, instant explanations, and a history of what you got wrong.">
+<title>Smart Serve Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --ground:      #F6F8F6;
+  --surface:     #FFFFFF;
+  --surface-2:   #EDF2EF;
+  --line:        #DBE3DE;
+  --line-strong: #C2CEC8;
+  --ink:         #131A17;
+  --ink-2:       #55605A;
+  --accent:      #0E5C4C;
+  --accent-ink:  #FFFFFF;
+  --accent-soft: #E2EFEA;
+  --amber:       #96590A;
+  --amber-soft:  #FAEFDC;
+  --good:        #1B6E43;
+  --good-soft:   #DEF0E5;
+  --bad:         #A82219;
+  --bad-soft:    #FAE3E0;
+  --shadow:      0 1px 2px rgba(19, 26, 23, .06), 0 8px 24px -12px rgba(19, 26, 23, .18);
+  --radius:      14px;
+
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body:    "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #0E1412;
+    --surface:     #161E1B;
+    --surface-2:   #1E2825;
+    --line:        #2C3833;
+    --line-strong: #3E4C46;
+    --ink:         #E9EFEB;
+    --ink-2:       #97A5A0;
+    --accent:      #56CAAA;
+    --accent-ink:  #06211B;
+    --accent-soft: #14302A;
+    --amber:       #E2A748;
+    --amber-soft:  #322512;
+    --good:        #5CCB8C;
+    --good-soft:   #14301F;
+    --bad:         #F29086;
+    --bad-soft:    #3A1A17;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:      #0E1412;
+  --surface:     #161E1B;
+  --surface-2:   #1E2825;
+  --line:        #2C3833;
+  --line-strong: #3E4C46;
+  --ink:         #E9EFEB;
+  --ink-2:       #97A5A0;
+  --accent:      #56CAAA;
+  --accent-ink:  #06211B;
+  --accent-soft: #14302A;
+  --amber:       #E2A748;
+  --amber-soft:  #322512;
+  --good:        #5CCB8C;
+  --good-soft:   #14301F;
+  --bad:         #F29086;
+  --bad-soft:    #3A1A17;
+  --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -.015em; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ---------- shell ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner {
+  max-width: 660px; margin: 0 auto;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 10px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 30px; height: 30px; flex: none;
+  border-radius: 9px; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center;
+  font-family: var(--display); font-weight: 800; font-size: 15px;
+}
+.brand-name { font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -.02em; }
+.brand-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; }
+
+.tabs { display: flex; gap: 6px; }
+.tab {
+  flex: 1; min-height: 42px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink-2);
+  font: 500 14px/1 var(--body); cursor: pointer;
+  display: grid; place-items: center;
+}
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.tab:focus-visible, .btn:focus-visible, .opt:focus-visible, .seg-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+main { max-width: 660px; margin: 0 auto; padding: 20px 16px 72px; display: flex; flex-direction: column; gap: 18px; }
+.view[hidden] { display: none; }
+.view { display: flex; flex-direction: column; gap: 18px; }
+
+/* ---------- cards & buttons ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: var(--shadow);
+}
+.card-tight { padding: 16px; gap: 10px; }
+
+.btn {
+  min-height: 56px; width: 100%;
+  border: 1px solid var(--accent); border-radius: 12px;
+  background: var(--accent); color: var(--accent-ink);
+  font: 600 17px/1.2 var(--body); cursor: pointer;
+  padding: 12px 18px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(1px); }
+.btn-quiet { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.btn-quiet:hover { background: var(--surface-2); filter: none; }
+.btn-small { min-height: 44px; font-size: 15px; width: auto; padding: 10px 16px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1 1 180px; width: auto; }
+
+/* ---------- home ---------- */
+.hero h1 { font-size: clamp(28px, 7.5vw, 38px); line-height: 1.08; }
+.hero p.lede { color: var(--ink-2); font-size: 17px; max-width: 46ch; }
+
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fact {
+  background: var(--surface-2); border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.fact-n { font-family: var(--mono); font-weight: 600; font-size: 19px; font-variant-numeric: tabular-nums; color: var(--accent); }
+.fact-l { font-size: 12px; color: var(--ink-2); line-height: 1.3; }
+
+.seg { display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 11px; }
+.seg-btn {
+  flex: 1; min-height: 44px; border: 0; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--ink-2); font: 500 14px/1.25 var(--body); padding: 6px 8px;
+}
+.seg-sub { display: block; font-size: 12.5px; font-weight: 400; opacity: .72; margin-top: 1px; }
+.seg-btn[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.10); }
+
+/* ---------- quiz ---------- */
+.progress-wrap { display: flex; flex-direction: column; gap: 8px; }
+.progress-meta { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.progress-track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width .3s ease; }
+
+.qtag {
+  align-self: flex-start;
+  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  background: var(--accent-soft); color: var(--accent);
+  padding: 5px 9px; border-radius: 6px;
+}
+.qtext { font-family: var(--display); font-weight: 600; font-size: clamp(20px, 5vw, 23px); line-height: 1.3; }
+
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt {
+  display: flex; align-items: flex-start; gap: 12px;
+  min-height: 56px; width: 100%; text-align: left;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line-strong); border-radius: 12px;
+  background: var(--surface); color: var(--ink);
+  font: 400 16.5px/1.4 var(--body); cursor: pointer;
+}
+.opt:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.opt:disabled { cursor: default; }
+.opt-key {
+  flex: none; width: 26px; height: 26px; border-radius: 7px;
+  background: var(--surface-2); color: var(--ink-2);
+  font: 600 13px/26px var(--mono); text-align: center;
+}
+.opt.is-correct { border-color: var(--good); background: var(--good-soft); }
+.opt.is-correct .opt-key { background: var(--good); color: var(--surface); }
+.opt.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.is-wrong .opt-key { background: var(--bad); color: var(--surface); }
+.opt.is-chosen { border-color: var(--accent); background: var(--accent-soft); }
+.opt.is-chosen .opt-key { background: var(--accent); color: var(--accent-ink); }
+
+.feedback { border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border: 1px solid transparent; }
+.feedback.ok { background: var(--good-soft); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+.feedback.no { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+.feedback-title { font-family: var(--display); font-weight: 700; font-size: 16px; }
+.feedback.ok .feedback-title { color: var(--good); }
+.feedback.no .feedback-title { color: var(--bad); }
+.feedback p { font-size: 15.5px; line-height: 1.5; }
+
+/* ---------- results ---------- */
+.score-ring { display: flex; align-items: center; gap: 18px; }
+.ring { position: relative; width: 104px; height: 104px; flex: none; }
+.ring svg { transform: rotate(-90deg); display: block; }
+.ring-label {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+  font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.ring-pct { font-size: 24px; }
+.verdict-title { font-size: clamp(22px, 6vw, 27px); }
+.verdict-sub { color: var(--ink-2); font-size: 15.5px; margin-top: 4px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 99px;
+}
+.pill.pass { background: var(--good-soft); color: var(--good); }
+.pill.fail { background: var(--amber-soft); color: var(--amber); }
+
+.miss { border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.miss-q { font-weight: 600; font-size: 16px; line-height: 1.4; }
+.miss-line { font-size: 15px; display: flex; gap: 8px; align-items: baseline; }
+.miss-line .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); flex: none; width: 62px; padding-top: 3px; }
+.miss-line .yours { color: var(--bad); }
+.miss-line .right { color: var(--good); font-weight: 600; }
+.miss-why { font-size: 15px; color: var(--ink-2); line-height: 1.5; border-top: 1px dashed var(--line); padding-top: 8px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- history ---------- */
+.attempt {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface);
+}
+.attempt-score { font-family: var(--mono); font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; }
+.attempt-meta { font-size: 13.5px; color: var(--ink-2); }
+.attempt-date { font-family: var(--mono); font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.bar-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
+.bar-name { font-size: 15px; }
+.bar-num { font-family: var(--mono); font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bar-track { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; background: var(--amber); }
+.topic { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.topic:last-child { border-bottom: 0; padding-bottom: 0; }
+
+.empty { color: var(--ink-2); font-size: 15.5px; text-align: center; padding: 22px 10px; line-height: 1.5; }
+
+/* ---------- key facts ---------- */
+.kf-group { display: flex; flex-direction: column; gap: 10px; }
+.kf-h { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--accent); }
+.kf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.kf-list li { display: flex; gap: 10px; font-size: 15.5px; line-height: 1.5; }
+.kf-list li::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: 9px; border-radius: 2px; background: var(--accent); }
+.kf-list b { font-weight: 600; }
+.num { font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.note { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.note a { color: var(--accent); }
+
+footer { max-width: 660px; margin: 0 auto; padding: 0 16px 40px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+@media (min-width: 560px) {
+  body { font-size: 18px; }
+  .row > .btn { flex: 1 1 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">SS</div>
+      <div>
+        <div class="brand-name">Smart Serve Practice</div>
+        <div class="brand-sub">Ontario &middot; 33 questions</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-practice" aria-selected="true" aria-controls="view-home">Practice</button>
+      <button class="tab" role="tab" id="tab-history" aria-selected="false" aria-controls="view-history">My history</button>
+      <button class="tab" role="tab" id="tab-facts" aria-selected="false" aria-controls="view-facts">Key facts</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ HOME ============ -->
+  <section class="view" id="view-home" role="tabpanel" aria-labelledby="tab-practice">
+    <div class="card hero">
+      <span class="eyebrow">Ontario responsible alcohol service</span>
+      <h1>33 fresh questions, every single time.</h1>
+      <p class="lede">Nothing to sign up for. Tap an answer, find out right away if it's right, and this page remembers every question you miss so you can practise those again.</p>
+      <div class="facts">
+        <div class="fact"><span class="fact-n" id="stat-taken">0</span><span class="fact-l">Tests taken</span></div>
+        <div class="fact"><span class="fact-n" id="stat-best">&mdash;</span><span class="fact-l">Best score</span></div>
+        <div class="fact"><span class="fact-n" id="stat-last">&mdash;</span><span class="fact-l">Last score</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Start a test</span>
+      <div>
+        <div style="font-family:var(--display);font-weight:700;font-size:16px;margin-bottom:8px;">When should I see the answers?</div>
+        <div class="seg" role="group" aria-label="Answer feedback mode">
+          <button class="seg-btn" id="mode-study" aria-pressed="true">Right away<br><span class="seg-sub">Best for learning</span></button>
+          <button class="seg-btn" id="mode-exam" aria-pressed="false">At the end<br><span class="seg-sub">Like the real test</span></button>
+        </div>
+      </div>
+      <button class="btn" id="btn-start">Start practice test &rarr;</button>
+      <button class="btn btn-quiet" id="btn-redo" hidden>Practise only what I got wrong</button>
+      <p class="note">You need <b>27 out of 33</b> to reach the 80% pass mark used on the real Smart Serve test.</p>
+    </div>
+
+    <div class="card card-tight">
+      <span class="eyebrow">How to keep this handy</span>
+      <p class="note">On a phone, tap your browser's <b>Share</b> button and choose <b>Add to Home Screen</b>. It will sit on the home screen like an app, and your history stays saved on this device.</p>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="view" id="view-quiz" role="region" aria-label="Practice test" hidden>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="q-counter">QUESTION 1 OF 33</span>
+        <span id="q-tally">0 CORRECT</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <div class="card">
+      <span class="qtag" id="q-category">Ontario law</span>
+      <h2 class="qtext" id="q-text">Question</h2>
+      <div class="opts" id="q-options"></div>
+      <div id="q-feedback" aria-live="polite"></div>
+      <button class="btn" id="btn-next" hidden>Next question &rarr;</button>
+    </div>
+
+    <button class="btn btn-quiet btn-small" id="btn-quit" style="align-self:center;">Stop and go back</button>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section class="view" id="view-results" role="region" aria-label="Your result" hidden>
+    <div class="card">
+      <div class="score-ring">
+        <div class="ring">
+          <svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true">
+            <circle cx="52" cy="52" r="45" fill="none" stroke="var(--surface-2)" stroke-width="10"></circle>
+            <circle id="ring-arc" cx="52" cy="52" r="45" fill="none" stroke="var(--accent)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"></circle>
+          </svg>
+          <div class="ring-label"><span class="ring-pct" id="ring-pct">0%</span></div>
+        </div>
+        <div>
+          <span class="pill pass" id="result-pill">Passed</span>
+          <h2 class="verdict-title" id="result-title" style="margin-top:8px;">Nice work</h2>
+          <p class="verdict-sub" id="result-sub">You got 0 of 33 right.</p>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-again">33 new questions</button>
+        <button class="btn btn-quiet" id="btn-home">Back to start</button>
+      </div>
+    </div>
+
+    <div class="card" id="misses-card">
+      <span class="eyebrow">Go over these</span>
+      <h3 style="font-size:19px;" id="misses-title">The ones you missed</h3>
+      <div class="stack" id="misses-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section class="view" id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <div class="card">
+      <span class="eyebrow">Your record</span>
+      <h2 style="font-size:24px;">Every test you've taken</h2>
+      <div class="stack" id="history-list"></div>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Where you lose marks</span>
+      <h2 style="font-size:24px;">Topics to shore up</h2>
+      <div id="topic-list"></div>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Questions you keep missing</span>
+      <h2 style="font-size:24px;">Your problem questions</h2>
+      <div class="stack" id="weak-list"></div>
+      <button class="btn" id="btn-drill" hidden>Practise these now</button>
+    </div>
+
+    <div class="card card-tight">
+      <p class="note">Your history is saved in this browser only &mdash; it is never sent anywhere. Clearing your browser data will erase it.</p>
+      <button class="btn btn-quiet btn-small" id="btn-clear" style="align-self:flex-start;">Erase my history</button>
+    </div>
+  </section>
+
+  <!-- ============ KEY FACTS ============ -->
+  <section class="view" id="view-facts" role="tabpanel" aria-labelledby="tab-facts" hidden>
+    <div class="card">
+      <span class="eyebrow">Cheat sheet</span>
+      <h2 style="font-size:24px;">The numbers worth memorizing</h2>
+      <p class="note">If you remember nothing else, remember these. Most of the test's "how many / how old / what time" questions come from this list.</p>
+    </div>
+    <div class="card" id="facts-body"></div>
+    <div class="card card-tight">
+      <p class="note"><b>A note on what this is.</b> These are original practice questions written from Ontario's publicly published rules &mdash; the Liquor Licence and Control Act, 2019 and AGCO guidance. They are not the real exam questions, and this page is not affiliated with Smart Serve Ontario or the AGCO. Use it alongside the official course, not instead of it.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p class="note">Built for practice. The official course and certification live at smartserve.ca. Rules current as of the Liquor Licence and Control Act, 2019 and AGCO guidance.</p>
+</footer>
+
+<script>
+/* ============================================================
+   QUESTION BANK
+   Original practice questions written from Ontario's publicly
+   published rules: the Liquor Licence and Control Act, 2019,
+   AGCO guidance, and Canada's Low-Risk Drinking Guidelines.
+   c = category, q = question, o = options, a = index of answer,
+   e = explanation shown after answering.
+   ============================================================ */
+const BANK = [
+
+/* ---------- ONTARIO LAW & LICENSING ---------- */
+{c:"Ontario law",q:"What is the legal drinking age in Ontario?",o:["18","19","21","20"],a:1,e:"Ontario's legal drinking age is 19. It is 18 in Alberta, Manitoba and Quebec, but that makes no difference to you — in Ontario you serve at 19."},
+{c:"Ontario law",q:"How old must you be to sell, serve, deliver or handle alcohol in Ontario?",o:["16","18","19","21"],a:1,e:"You must be 18 to sell, serve, deliver or handle alcohol — one year younger than the age you are allowed to drink it. So an 18-year-old may pour a beer but may not drink one."},
+{c:"Ontario law",q:"How long is a Smart Serve certification valid before you must recertify?",o:["1 year","2 years","5 years","It never expires"],a:2,e:"Certificates are valid for five years. After that you have to recertify to keep working in a job that requires it."},
+{c:"Ontario law",q:"Which body regulates the sale and service of alcohol in Ontario?",o:["The AGCO — Alcohol and Gaming Commission of Ontario","Health Canada","The Ontario Provincial Police","The LCBO"],a:0,e:"The AGCO enforces the liquor laws and issues, suspends and revokes liquor sales licences. The LCBO sells and distributes alcohol; it is not the regulator."},
+{c:"Ontario law",q:"Which law sets the rules for selling and serving alcohol in Ontario today?",o:["The Liquor Control Act, 1927","The Liquor Licence and Control Act, 2019","The Criminal Code of Canada","The Occupiers' Liability Act"],a:1,e:"The Liquor Licence and Control Act, 2019 (the LLCA) replaced the old Liquor Licence Act. The Criminal Code and the Occupiers' Liability Act also touch alcohol service, but the LLCA is the liquor law itself."},
+{c:"Ontario law",q:"On an ordinary day, what are the permitted hours to sell and serve alcohol in a licensed Ontario establishment?",o:["11:00 a.m. to 1:00 a.m.","9:00 a.m. to 2:00 a.m.","Noon to 2:00 a.m.","10:00 a.m. to 3:00 a.m."],a:1,e:"Service is permitted from 9:00 a.m. to 2:00 a.m. Individual licences can carry conditions that shorten those hours, but they can never extend them."},
+{c:"Ontario law",q:"After service stops at 2:00 a.m., how long do patrons have to finish their drinks before everything must be cleared?",o:["15 minutes","30 minutes","45 minutes","They must finish immediately at 2:00 a.m."],a:2,e:"Patrons get 45 minutes. By 2:45 a.m. every glass and bottle must be cleared and all signs of service and consumption gone."},
+{c:"Ontario law",q:"On which night are the permitted hours of liquor service extended in Ontario?",o:["Canada Day","New Year's Eve","Victoria Day","The Saturday of a long weekend"],a:1,e:"New Year's Eve is the one exception — service may run to 3:00 a.m. on January 1. No other holiday extends the hours."},
+{c:"Ontario law",q:"Who in a licensed establishment is required to hold a Smart Serve certification?",o:["Only the bartenders","Only the manager on duty","Anyone who sells, serves, handles or delivers alcohol, plus security staff","Only full-time employees"],a:2,e:"Servers, bartenders, delivery drivers, anyone handling alcohol and security staff all need it — full-time, part-time or casual makes no difference."},
+{c:"Ontario law",q:"A regular asks you to sell him a bottle of wine to take home from your licensed restaurant. What determines whether you can?",o:["You can always sell sealed bottles to go","Only if the licence permits it and the rules for takeout sales are followed","Only if he is a regular customer","Only after 9:00 p.m."],a:1,e:"Takeout and delivery of alcohol is only allowed where the licence and the current rules permit it, and every sale still requires an ID check and a sober customer."},
+{c:"Ontario law",q:"A guest wants to carry her unfinished cocktail out to the sidewalk to smoke. What do you do?",o:["Let her, it is only a few steps","Ask her to leave the drink inside the licensed area","Let her if she promises to bring it back","Pour it into a plastic cup first"],a:1,e:"Alcohol may only be consumed inside the area covered by the licence. Once she steps off the licensed premises with it, the establishment is in breach."},
+{c:"Ontario law",q:"Which of these promotions is prohibited in Ontario?",o:["A drink of the day at a normal price","An all-you-can-drink price for a fixed fee","A wine-pairing dinner","Free non-alcoholic drinks for designated drivers"],a:1,e:"Anything that encourages immoderate consumption is prohibited — all-you-can-drink deals, drinking contests, unlimited drinks for one price. Rewarding designated drivers is actively encouraged."},
+{c:"Ontario law",q:"A group at table six starts a chugging contest with the drinks they already bought. What must you do?",o:["Nothing, they bought the drinks already","Stop the contest — the establishment cannot permit practices that encourage immoderate consumption","Only stop them if they get loud","Join in to keep the mood friendly"],a:1,e:"It is not only about what you sell. Permitting a drinking contest on the premises is itself a breach, and it will drive the whole table to intoxication fast."},
+{c:"Ontario law",q:"What is a Special Occasion Permit (SOP) for?",o:["Serving alcohol at an event in a place that is not otherwise licensed","Staying open past 2:00 a.m.","Selling alcohol at wholesale prices","Allowing minors to drink at weddings"],a:0,e:"An SOP covers one-off events — a wedding at a hall, a charity fundraiser. Everything else still applies: age checks, intoxication rules and certified servers."},
+{c:"Ontario law",q:"At an event run under a Special Occasion Permit, do the rules about intoxicated patrons still apply?",o:["No, SOP events are exempt","Yes, in full — you cannot serve someone who is or appears intoxicated","Only if police are present","Only if it is a public event"],a:1,e:"An SOP changes where you may serve, not how. Age checks, refusal of intoxicated patrons and liability all follow you to the event."},
+{c:"Ontario law",q:"Can a licensed establishment let a customer bring in their own homemade wine to drink with dinner?",o:["Yes, if a corkage fee is charged","Yes, if the customer is over 19","No — only alcohol lawfully obtained and permitted under the licence may be there","Yes, on special occasions"],a:2,e:"Only alcohol acquired through legal channels and permitted under the licence may be kept or consumed on the premises. Homemade product is not."},
+{c:"Ontario law",q:"A parent wants to buy a beer for their 17-year-old at your licensed restaurant. What is the answer?",o:["Yes, a parent may authorize it","Yes, if the parent stays at the table","No — a person under 19 may not be served alcohol in a licensed establishment, parent or not","Yes, if it is a low-alcohol beer"],a:2,e:"There is no parental exception in a licensed establishment. Serving the minor — or serving the parent knowing it is going to the minor — is an offence."},
+{c:"Ontario law",q:"You watch a 25-year-old buy two beers and slide one to her 18-year-old friend. What is that called and what do you do?",o:["A second-party favour — leave it alone","A third-party sale — remove the drink and refuse further service to both","Perfectly legal as long as she paid","A house-policy matter only"],a:1,e:"This is a third-party or 'straw' sale. You are responsible for who ends up drinking, not just who paid, so retrieve the drink and stop serving the buyer."},
+{c:"Ontario law",q:"Can a person under 19 be inside a licensed establishment in Ontario?",o:["Never","Yes, in areas and circumstances the licence permits — they simply cannot be served alcohol","Only with a police escort","Only before 8:00 p.m. anywhere"],a:1,e:"Family restaurants seat minors all day. What is prohibited is selling, serving or giving them alcohol — and some rooms are restricted to 19+ by the licence."},
+{c:"Ontario law",q:"Consequences an establishment can face for serving an intoxicated patron include:",o:["A written warning only","Monetary penalties, and suspension or revocation of the liquor sales licence","Nothing, unless someone is hurt","A one-day closure only"],a:1,e:"The AGCO can impose monetary penalties and suspend or revoke the licence. The individual server can also be charged and personally sued."},
+{c:"Ontario law",q:"Can you, personally, be penalized for serving alcohol to a minor — or is it only your employer?",o:["Only the employer is ever penalized","You can be charged and fined personally, in addition to anything your employer faces","Only if you are the manager","Only if you knew the person's real age"],a:1,e:"Liability is personal as well as corporate. 'My boss told me to' is not a defence, and neither is being new."},
+{c:"Ontario law",q:"You are delivering alcohol to a home. The person at the door is clearly drunk. What do you do?",o:["Leave it on the porch","Complete the delivery, the sale was already paid for","Refuse the delivery","Ask them to sign a waiver"],a:2,e:"A delivery is a service transaction like any other. You must refuse if the recipient is under 19, appears intoxicated, or cannot produce acceptable ID."},
+{c:"Ontario law",q:"Who must check ID on an alcohol delivery to a residence?",o:["Nobody, the online age gate covers it","The person making the delivery, at the door","The dispatcher","The customer's neighbour if they accept it"],a:1,e:"The person handing over the alcohol checks ID at the door, and they must be 18 or older and certified."},
+{c:"Ontario law",q:"An establishment's liquor sales licence must be:",o:["Kept in the manager's office","Posted where patrons can see it","Carried by each server","Renewed weekly"],a:1,e:"The licence must be displayed on the premises. AGCO inspectors can arrive unannounced and will look for it."},
+{c:"Ontario law",q:"Alcohol served in a licensed establishment in Ontario must be purchased from:",o:["Any wholesaler","An authorized source such as the LCBO or another government-approved channel","Whoever offers the lowest price","Anywhere, as long as receipts are kept"],a:1,e:"Product must come through authorized channels. Buying stock from unapproved sources is a licence offence, even if the product itself is genuine."},
+{c:"Ontario law",q:"An AGCO inspector arrives during service and asks to see records. You should:",o:["Ask them to come back tomorrow","Cooperate — inspectors have the authority to inspect licensed premises","Refuse until the owner arrives","Ask for a warrant"],a:1,e:"Inspectors have authority to enter and inspect licensed premises during business hours. Obstructing an inspector is itself an offence."},
+{c:"Ontario law",q:"Can a licensed establishment give away free alcohol as a promotion?",o:["Yes, any time","No — promotions that encourage immoderate consumption, including giving liquor away, are restricted","Yes, if it is only one drink each","Yes, on the house's anniversary"],a:1,e:"Ontario restricts pricing and promotion of liquor. The test is always whether the practice encourages people to drink more than they otherwise would."},
+
+/* ---------- CHECKING ID ---------- */
+{c:"Checking ID",q:"You must ask for identification from anyone who:",o:["Looks under 19","Looks under 25 or 30, depending on house policy — and legally, anyone who appears under 19","Orders spirits","Is not a regular"],a:1,e:"The law says check anyone who appears under 19. Most houses set the bar higher — under 25 or 30 — because judging 19 by sight is exactly where servers get caught."},
+{c:"Checking ID",q:"Which of these is an acceptable proof of age in Ontario?",o:["An Ontario health card","A Canadian passport","A student card with a photo","A birth certificate"],a:1,e:"A Canadian passport qualifies. A health card, student card or birth certificate does not — acceptable ID must be valid, government-issued, and carry both a photo and a date of birth."},
+{c:"Checking ID",q:"Which three things must every acceptable piece of identification show?",o:["Photo, date of birth, and a signature","Photo, date of birth, and the holder's name","Address, photo, and height","Photo, name, and eye colour"],a:1,e:"Valid, government-issued, with a photograph, the person's name and their date of birth. Anything missing one of those is not acceptable."},
+{c:"Checking ID",q:"A customer hands you a driver's licence that expired last month. What do you do?",o:["Accept it, the birthdate has not changed","Refuse it — identification must be valid","Accept it if you also see a credit card","Accept it if the photo clearly matches"],a:1,e:"Expired ID is not acceptable ID, however obvious the person's age looks. The birthdate being unchanged is irrelevant — the document is no longer valid."},
+{c:"Checking ID",q:"Which of these is an AGCO-accepted piece of photo ID?",o:["An Ontario Photo Card","A gym membership card","A school yearbook photo","A photocopy of a passport"],a:0,e:"The Ontario Photo Card is issued by the province for exactly this purpose — for people who do not drive. Photocopies are never acceptable."},
+{c:"Checking ID",q:"A young man presents a BYID card from the LCBO. Is it acceptable?",o:["No, it is not government-issued","Yes, the BYID photo card is an accepted form of identification","Only at LCBO stores","Only if he also has a health card"],a:1,e:"The Bring Your ID (BYID) card is issued by the LCBO specifically as proof of age and is accepted in licensed establishments."},
+{c:"Checking ID",q:"Someone shows you a Secure Certificate of Indian Status card. What do you do?",o:["Refuse it, it is not on the list","Accept it — the secure status card issued by the Government of Canada is acceptable ID","Ask for a second piece","Accept it only with a passport"],a:1,e:"The Secure Certificate of Indian Status is federally issued with a photo and date of birth, and it is an accepted proof of age. Refusing it is both wrong and discriminatory."},
+{c:"Checking ID",q:"What is the single most reliable way to check whether an ID has been altered?",o:["Look at the photo only","Take the ID in your hands and examine it — feel the surface, check the edges, look for tampering","Ask how old they are","Check whether the name sounds real"],a:1,e:"Never assess ID at arm's length across a bar. Hold it, feel for raised or peeling laminate, check the edges and look for altered digits."},
+{c:"Checking ID",q:"After checking the photo and the birthdate, what else should you always confirm on an ID?",o:["The person's postal code","The expiry date and whether the document shows signs of tampering","Their height in centimetres","Their organ donor status"],a:1,e:"Photo, date of birth, expiry date, and physical condition of the card. Skipping the expiry date is the most common miss."},
+{c:"Checking ID",q:"You are fairly sure the ID a customer handed you is fake. What is the correct response?",o:["Confiscate the ID and keep it","Refuse service, return the ID, and tell your manager","Tear it up in front of them","Serve them but water down the drink"],a:1,e:"You refuse service and inform your manager — you have no legal authority to seize someone's identification. Document the incident afterwards."},
+{c:"Checking ID",q:"A customer becomes angry that you asked for ID and says he is clearly over 40. What is your best move?",o:["Apologize and serve him","Stay polite, explain it is the law and house policy, and check anyway","Ask a coworker to decide","Serve him if a regular vouches for him"],a:1,e:"Be friendly but firm and put it on the policy, not the person: 'We check everyone, it keeps my certification safe.' Consistency also protects you from discrimination complaints."},
+{c:"Checking ID",q:"Two friends order drinks. One shows valid ID, the other says she left hers in the car. What do you do?",o:["Serve them both, they are obviously together","Serve only the one with ID, and watch that the drink is not passed along","Refuse both","Serve the second one a smaller drink"],a:1,e:"No ID, no service — and then keep an eye out for the drink being handed over, which would be a third-party sale you are responsible for."},
+{c:"Checking ID",q:"Doing quick mental math from a birthdate on an ID is risky mainly because:",o:["It is against the law to calculate","Under pressure it is easy to get wrong — use the 'born on or before' date posted at the till","It takes too long","Birthdates are often printed incorrectly"],a:1,e:"Most establishments post the current qualifying date near the till or door. Reading the posted date beats doing arithmetic in your head in a busy room."},
+{c:"Checking ID",q:"How should you approach ID checks so you do not open the house to a discrimination complaint?",o:["Only check people who look nervous","Apply the same standard to everyone who appears under your house's age threshold","Check only people you do not recognize","Check only on weekends"],a:1,e:"A consistent, uniform standard is your defence. Checking selectively based on appearance, accent or background is discriminatory and indefensible."},
+{c:"Checking ID",q:"A regular you have served for two years is with a friend you have never seen. Do you card the friend?",o:["No, they are with a regular","Yes, if the friend appears under your house threshold","Only if they order spirits","Only if the regular says to"],a:1,e:"Being vouched for is not identification. Everyone who appears under the threshold gets carded, every time, regardless of company."},
+{c:"Checking ID",q:"A customer's ID photo looks like it could be them, but you are not certain. What should you do?",o:["Serve them, it is close enough","Ask questions only the true holder would know, and refuse if you remain unsure","Ask a coworker to guess","Serve them and note it in the log"],a:1,e:"Ask their address, their middle name, their sign — hesitation tells you a lot. If doubt remains after that, refuse. The doubt itself is your answer."},
+
+/* ---------- ALCOHOL & THE BODY ---------- */
+{c:"Alcohol & the body",q:"Alcohol is classified as which kind of drug?",o:["A stimulant","A depressant","A hallucinogen","An antibiotic"],a:1,e:"Alcohol is a central nervous system depressant. Early loudness and confidence come from depressed inhibitions — not from stimulation."},
+{c:"Alcohol & the body",q:"Roughly how long does the average adult's body take to process one standard drink?",o:["About 15 minutes","About 30 minutes","About 1 hour","About 3 hours"],a:2,e:"About one standard drink per hour. Drinking faster than that means blood alcohol keeps climbing, no matter how well the person seems to be handling it."},
+{c:"Alcohol & the body",q:"Which of these actually lowers a person's blood alcohol level?",o:["Black coffee","A cold shower","Fresh air and a walk","Only the passage of time"],a:3,e:"Only time. Coffee, cold air and cold water can make someone more alert but leave the blood alcohol exactly where it was — which produces a wide-awake drunk, the most dangerous kind to put behind a wheel."},
+{c:"Alcohol & the body",q:"Which of these contains about the same amount of pure alcohol as a 12 oz (341 mL) glass of 5% beer?",o:["5 oz (142 mL) of 12% wine","10 oz of 12% wine","3 oz of 40% spirits","A 20 oz pint of 5% beer"],a:0,e:"A standard drink is 12 oz of 5% beer, 5 oz of 12% wine, or 1.5 oz of 40% spirits. All three carry roughly the same alcohol."},
+{c:"Alcohol & the body",q:"How much 40% spirits makes one standard drink?",o:["1 oz (30 mL)","1.5 oz (43 mL)","2 oz (60 mL)","3 oz (85 mL)"],a:1,e:"1.5 oz, about 43 mL. This is why a double or a heavy free-pour quietly doubles what your guest is actually drinking."},
+{c:"Alcohol & the body",q:"Most of the alcohol a person drinks is absorbed into the bloodstream through the:",o:["Mouth","Stomach","Small intestine","Large intestine"],a:2,e:"About 20% is absorbed through the stomach, but roughly 80% goes through the small intestine — which is why an empty stomach speeds everything up."},
+{c:"Alcohol & the body",q:"Which organ does nearly all the work of breaking down alcohol?",o:["The kidneys","The liver","The stomach","The lungs"],a:1,e:"The liver handles about 90% of it, at a fixed rate that you cannot hurry. The rest leaves through breath, sweat and urine."},
+{c:"Alcohol & the body",q:"Eating a large meal before drinking does what?",o:["Prevents intoxication entirely","Slows the absorption of alcohol, but does not stop it","Removes alcohol from the blood","Doubles the effect of alcohol"],a:1,e:"Food slows absorption so the blood alcohol rises more gradually. Every drop still gets absorbed — it just arrives later."},
+{c:"Alcohol & the body",q:"A rum and cola versus a rum and soda water — which is absorbed faster and why?",o:["Neither, mixers make no difference","The carbonated one, because carbonation speeds absorption","The one with sugar, because sugar carries alcohol","The taller drink, because of volume"],a:1,e:"Carbonation speeds alcohol through the stomach into the small intestine. Sparkling wine and highballs hit faster than the same alcohol served flat."},
+{c:"Alcohol & the body",q:"Two people of the same weight drink the same amount over the same time. Why might a woman reach a higher blood alcohol level than a man?",o:["Women drink faster on average","Generally lower body water content and differences in how alcohol is broken down","Women are always lighter","There is no difference"],a:1,e:"Less body water means the same alcohol is less diluted, and there are differences in the enzymes that begin breaking alcohol down. Body size, food, medication and fatigue all matter too."},
+{c:"Alcohol & the body",q:"A regular tells you he has a high tolerance and can drink all night. What does tolerance actually change?",o:["It lowers his blood alcohol level","It only masks the outward signs — his blood alcohol rises exactly the same","It speeds up his liver","It makes him a safe driver"],a:1,e:"Tolerance hides the signals you rely on while the blood alcohol climbs normally. High-tolerance drinkers are among the most dangerous patrons for precisely this reason."},
+{c:"Alcohol & the body",q:"Mixing alcohol with an energy drink is a concern because:",o:["The caffeine removes the alcohol","The stimulant masks how drunk the person feels while impairment continues to rise","It makes the drink taste stronger","It causes an allergic reaction"],a:1,e:"The person feels alert and capable while their coordination, judgement and reaction time are just as impaired. They will overestimate what they can safely do."},
+{c:"Alcohol & the body",q:"A guest mentions she is on prescription medication. Why should that raise your attention?",o:["It does not, medication is private","Many medications amplify alcohol's effects or react badly with it","It means she cannot pay","She must be served only wine"],a:1,e:"Many common medications multiply alcohol's effect. Someone may become visibly impaired after one drink, and your service decision has to follow what you observe."},
+{c:"Alcohol & the body",q:"Which of the following signals possible alcohol poisoning, needing 911?",o:["Talking loudly","Cold clammy skin, slow or irregular breathing, and being unable to be roused","Ordering another round","Laughing a lot"],a:1,e:"Cold or clammy skin, bluish lips, slow or irregular breathing, vomiting while unresponsive, or being impossible to wake. Call 911, stay with them, and turn them on their side."},
+{c:"Alcohol & the body",q:"Someone has passed out after heavy drinking. Until help arrives, you should:",o:["Lay them on their back so they can breathe","Turn them on their side and stay with them","Walk them around the room","Give them coffee"],a:1,e:"On their side, so that if they vomit they cannot choke. Never leave an unconscious person alone and never try to 'walk it off'."},
+{c:"Alcohol & the body",q:"An 'alcohol blackout' means:",o:["The person has fainted","The person is awake and functioning but forming no memory of it","The person has stopped drinking","The person's vision has gone"],a:1,e:"They can walk, talk and order more while their brain records nothing. It is a sign of a dangerously high blood alcohol level, not merely a heavy night."},
+{c:"Alcohol & the body",q:"Which factor does NOT meaningfully affect how quickly someone becomes intoxicated?",o:["Body weight","Whether they have eaten","How expensive the alcohol was","How fast they are drinking"],a:2,e:"Price, brand and quality change nothing. Body size, food, drinking speed, sex, medication, fatigue and mood all do."},
+{c:"Alcohol & the body",q:"Why does fatigue matter to a server watching for intoxication?",o:["It does not","A tired person is affected more quickly and shows signs sooner","Tired people drink slower","Fatigue lowers blood alcohol"],a:1,e:"Somebody off a double shift can be visibly impaired on one drink. What you observe always outranks what the drink count says."},
+{c:"Alcohol & the body",q:"A person's blood alcohol level can continue rising even after they stop drinking. Why?",o:["The liver produces alcohol","Alcohol already in the stomach and intestine is still being absorbed","Standing up raises it","It cannot rise after the last drink"],a:1,e:"The last round is still being absorbed for a while after it is finished. A guest who seemed borderline at last call can be plainly drunk in the parking lot."},
+
+/* ---------- SPOTTING INTOXICATION ---------- */
+{c:"Spotting intoxication",q:"When should you start watching a guest for signs of impairment?",o:["After their third drink","From the moment they arrive and order their first drink","Only after 11:00 p.m.","Only if they order spirits"],a:1,e:"Monitoring starts at the door. You need a baseline of how someone looked and sounded when they arrived, or you cannot recognize the change later."},
+{c:"Spotting intoxication",q:"Smart Serve groups the signs of intoxication into changes in which four areas?",o:["Speech, inhibitions and behaviour, judgement, and coordination or reaction time","Height, weight, age, and mood","Order size, tip size, speed, and volume","Eyes, hair, clothing, and posture"],a:0,e:"Speech, inhibitions and behaviour, judgement, and coordination or reaction time. Any one changing over the visit is your cue to slow service down."},
+{c:"Spotting intoxication",q:"Which of these is a change in SPEECH that signals impairment?",o:["Ordering a different drink","Slurring, or talking noticeably louder or slower than earlier","Asking for the bill","Speaking a second language"],a:1,e:"Slurred words, unusual volume, rambling or repeating. The signal is the change from how they sounded when they arrived, not any absolute standard."},
+{c:"Spotting intoxication",q:"Which of these is a loss of INHIBITION signalling impairment?",o:["Ordering an appetizer","Becoming overly familiar with strangers, unusually loud, or foul-mouthed when they were not before","Checking their phone","Paying with cash"],a:1,e:"Alcohol depresses the part of the brain that governs restraint first. The quiet guest who is suddenly hugging strangers has crossed a line."},
+{c:"Spotting intoxication",q:"Which of these is an example of impaired JUDGEMENT?",o:["Buying rounds for strangers and starting arguments over nothing","Reading the menu carefully","Asking for water","Calling a taxi"],a:0,e:"Reckless spending, picking fights, poor decisions, insisting they are fine to drive. Bad judgement is the sign most likely to end in real harm."},
+{c:"Spotting intoxication",q:"Which of these signals impaired COORDINATION or reaction time?",o:["Chewing slowly","Fumbling money, spilling drinks, swaying, bumping into furniture","Wearing a coat indoors","Coughing"],a:1,e:"Dropping change, missing the table with a glass, difficulty walking straight, slow to respond when spoken to. Fine motor control goes early and visibly."},
+{c:"Spotting intoxication",q:"A guest who arrived quiet is now loud, buying rounds and slurring. What do you do?",o:["Serve one more and reassess","Stop alcohol service now, offer food and water, and tell your manager","Wait for someone to complain","Move them to a quieter table"],a:1,e:"Signs across several categories means the person is already intoxicated. Serving 'one more' to see is exactly what liability cases turn on."},
+{c:"Spotting intoxication",q:"Why is counting drinks alone an unreliable way to judge intoxication?",o:["Customers lie about the count","The same number of drinks affects different people very differently, and they may have drunk elsewhere","Counting is against policy","Drinks vary in price"],a:1,e:"Weight, food, medication, fatigue and pre-drinking all change the picture. Count drinks, but let what you observe make the decision."},
+{c:"Spotting intoxication",q:"A guest arrives already showing signs of impairment. What do you do?",o:["Serve them one drink so they do not cause a scene","Do not serve them alcohol at all","Serve them beer instead of spirits","Serve them and monitor closely"],a:1,e:"You cannot serve someone who is or appears intoxicated — including a person who arrived that way. Where they got drunk is irrelevant to your responsibility."},
+{c:"Spotting intoxication",q:"Bloodshot eyes, flushed face and an unsteady walk are best described as:",o:["Definitely a medical emergency","Visible signs a guest may be intoxicated, to be read together with their behaviour","Proof of nothing at all","Reasons to serve water only and continue alcohol service"],a:1,e:"They are signals to read alongside speech, judgement and coordination. Some also have innocent explanations, which is why you look at the whole picture and the change over time."},
+{c:"Spotting intoxication",q:"Why does a group of friends buying rounds deserve extra attention?",o:["Groups tip poorly","Round-buying sets the pace to the fastest drinker and hides how much each person has had","Groups are always loud","Groups take more tables"],a:1,e:"Everyone drinks at the fastest person's rate, and the drink count per person becomes very hard to track. Watch individuals, not the table."},
+{c:"Spotting intoxication",q:"Handing over service of a table at shift change, what must you pass along?",o:["Only the food orders","What each guest has had, how long they have been there, and anyone you are watching","Only the bill total","Nothing, the next server starts fresh"],a:1,e:"A clean handover is the only thing that stops a monitored guest from starting again at zero with the next server."},
+{c:"Spotting intoxication",q:"A guest asks for a double, then a third round within forty minutes of arriving. What is the concern?",o:["Nothing, it is their money","The rate of consumption is far ahead of what the body can process, so impairment is coming","They may not like the drink","They may want to leave soon"],a:1,e:"The body handles about one standard drink an hour. Someone drinking well past that rate will be impaired shortly, whatever they look like right now."},
+{c:"Spotting intoxication",q:"What does it mean to establish a 'baseline' for a guest?",o:["Setting a spending limit","Noting how they look, speak and move when they first arrive, to compare against later","Recording their name","Deciding their drink limit in advance"],a:1,e:"Some people are naturally loud, or walk with a limp. Your baseline is what tells you whether what you are seeing now is alcohol or just them."},
+
+/* ---------- REFUSING SERVICE & INTERVENING ---------- */
+{c:"Refusing service",q:"When is the best time to refuse further service to a guest?",o:["Once they are clearly drunk","Early — as soon as you see the signs, before they become badly impaired","After they refuse food","At last call"],a:1,e:"Early refusal is easier, safer and far more likely to be accepted calmly. Waiting until someone is badly impaired guarantees a harder conversation."},
+{c:"Refusing service",q:"What is the best way to deliver a refusal?",o:["Loudly, so the room backs you up","Quietly and privately, calmly and firmly, without judging the person","By having a coworker do it","By ignoring their next order"],a:1,e:"Quiet and private lets the guest keep their dignity, which is the single biggest factor in whether they accept it. Never lecture, argue or embarrass them."},
+{c:"Refusing service",q:"Which phrasing works best when refusing service?",o:["“You've had way too much.”","“I'm not able to serve you any more alcohol tonight — can I get you a coffee or something to eat?”","“My manager says no.”","“You people always do this.”"],a:1,e:"State it in the first person, keep it about your obligation rather than their character, and immediately offer an alternative so the conversation has somewhere to go."},
+{c:"Refusing service",q:"A refused guest becomes loud and demands to see the manager. What should you do?",o:["Argue your case in front of the room","Stay calm, do not argue, and get your manager — the refusal itself does not change","Serve them to settle it down","Ask them to leave immediately"],a:1,e:"Bring the manager, stay calm and hold the decision. A refusal that gets reversed under pressure teaches every regular that shouting works."},
+{c:"Refusing service",q:"After refusing service, what should you do before the end of your shift?",o:["Nothing more","Record the incident in the log book — time, what you observed, what you did","Text the owner","Post about it"],a:1,e:"Written, contemporaneous notes are your best evidence if the night ends up in front of the AGCO or a court, sometimes years later."},
+{c:"Refusing service",q:"Which of these is a legitimate way to slow a guest's drinking down?",o:["Watering down their drinks without telling them","Offering food and water, taking longer between rounds, and suggesting non-alcoholic options","Serving them doubles so they order less often","Charging them more"],a:1,e:"Food, water, time and alternatives. Secretly altering someone's drink is dishonest, and doubles hand them more alcohol per order, not less."},
+{c:"Refusing service",q:"An intoxicated guest says she is going to drive home. What is your responsibility?",o:["None, once she leaves the building","Do everything reasonable to stop her — arrange a ride, involve your manager, and call police if she still drives","Simply warn her","Ask her to wait ten minutes"],a:1,e:"Your duty of care extends to people on the road. Offer a taxi or rideshare, call someone for her, involve the manager — and if she still gets in the car, call police with a description and plate."},
+{c:"Refusing service",q:"Can you legally take a customer's car keys away from them?",o:["Yes, servers may confiscate keys","No — you can ask for them and encourage them to hand them over, but you cannot seize them","Yes, if you give them back the next day","Only after 2:00 a.m."],a:1,e:"You may ask, persuade and offer alternatives, but taking property by force is not open to you. If persuasion fails, call police."},
+{c:"Refusing service",q:"An intoxicated guest is leaving on foot in winter with no coat. Do you have any responsibility?",o:["No, walking is always safe","Yes — duty of care covers foreseeable harm, so arrange a safe way home or call someone","Only if the guest asks","Only if they are a regular"],a:1,e:"Exposure, traffic and falls are all foreseeable. The duty is to see the person safely away, not merely to keep them out of a driver's seat."},
+{c:"Refusing service",q:"A guest's friends say they will look after him and drive him home. What should you do?",o:["Accept it and move on","Check that the driver is sober before releasing him to them","Refuse and call a taxi regardless","Ask them to sign a form"],a:1,e:"Handing an intoxicated guest to a driver who has also been drinking makes the situation worse. Confirm the driver is sober."},
+{c:"Refusing service",q:"What is the most useful thing about having a written house policy on service and refusals?",o:["It impresses inspectors","It gives every staff member the same standard to apply and something impersonal to point to","It replaces training","It limits how many drinks are sold"],a:1,e:"Consistency protects the guest, the staff and the licence — and 'it's our policy' takes the refusal off you personally."},
+{c:"Refusing service",q:"You are worried a refusal could turn physical. What is the right move?",o:["Handle it alone to avoid a scene","Involve your manager or security before it escalates","Serve them one more drink","Call police only after something happens"],a:1,e:"Get support early. Your safety comes first, and a second person present usually defuses the situation before it becomes anything."},
+{c:"Refusing service",q:"A guest refused service tonight comes back tomorrow, sober. What do you do?",o:["Refuse permanently","Serve them normally, while monitoring as you would anyone","Make them apologize first","Serve only non-alcoholic drinks"],a:1,e:"The refusal applied to that night's condition, not to the person. Holding a grudge is neither policy nor law."},
+{c:"Refusing service",q:"A guest who has clearly been drinking elsewhere orders a beer on arrival. What is your position?",o:["It is not your problem, they drank somewhere else","You cannot serve someone who appears intoxicated, no matter where they drank","Serve one beer only","Serve them if they eat first"],a:1,e:"Their condition on arrival is what matters. Serving them makes their state your establishment's responsibility from that point on."},
+{c:"Refusing service",q:"What is the safest way to handle a guest who insists on 'just one more' after being cut off?",o:["Give in to keep the peace","Repeat the refusal calmly in the same words, and redirect to food, water or a ride home","Explain the law in detail","Walk away without answering"],a:1,e:"Calm repetition without new argument gives them nothing to push against. Debating the merits reopens a decision that is already made."},
+
+/* ---------- LIABILITY ---------- */
+{c:"Liability",q:"Which three kinds of liability can a server face after an alcohol-related incident?",o:["Criminal, civil, and liquor-licence (regulatory)","Federal, provincial, and municipal","Personal, financial, and moral","Written, verbal, and implied"],a:0,e:"Criminal charges, a civil lawsuit for damages, and regulatory penalties under the liquor law. One incident can trigger all three at once."},
+{c:"Liability",q:"An intoxicated patron you served crashes and injures someone. Who can be sued?",o:["Only the driver","Only the establishment","The driver, the establishment, and potentially the individual server","Nobody, the driver chose to drive"],a:2,e:"Injured parties commonly sue everyone connected to the harm, the server included. The driver's own choice reduces but does not erase the server's share."},
+{c:"Liability",q:"What does 'duty of care' mean for someone serving alcohol?",o:["A duty to keep the bar clean","A legal obligation to take reasonable care to avoid foreseeable harm to patrons and to third parties","A duty to serve every customer equally","A duty to report tips"],a:1,e:"It reaches past your guest to anyone their impairment could foreseeably hurt — the family in the oncoming car included."},
+{c:"Liability",q:"'Third-party liability' in alcohol service refers to responsibility for harm suffered by:",o:["The server","Someone other than the patron — another driver, a pedestrian, a bystander","The licence holder","The alcohol supplier"],a:1,e:"The patron gets drunk; a stranger gets hurt. That stranger can bring an action against the establishment and its staff."},
+{c:"Liability",q:"'I was only doing what my manager told me' is:",o:["A complete legal defence","Not a defence — you remain personally responsible for your own service decisions","A defence only for new employees","A defence if it is in writing"],a:1,e:"Being instructed to over-serve does not transfer your liability. If a manager pressures you to serve an intoxicated guest, that is a serious problem to escalate, not to follow."},
+{c:"Liability",q:"Which record most helps defend an establishment after an incident?",o:["The sales receipts","A contemporaneous incident log with what was observed and what was done","The staff schedule","Social media posts"],a:1,e:"Notes made at the time carry far more weight than memory reconstructed a year later. Log what you saw, what you said and what you arranged."},
+{c:"Liability",q:"How does 'social host' liability differ from 'commercial host' liability?",o:["They are the same","Commercial hosts sell alcohol and are held to a higher standard than private hosts","Social hosts face criminal charges only","Commercial hosts face no liability"],a:1,e:"Selling alcohol for profit, with trained staff and control of the premises, brings a higher standard of care than hosting friends at home."},
+{c:"Liability",q:"Under Ontario's Occupiers' Liability Act, an establishment must:",o:["Serve only certified products","Take reasonable care that people on the premises are reasonably safe","Insure every patron","Post its hours"],a:1,e:"Reasonable safety covers the icy parking lot and the wet floor as much as the drink service — and an intoxicated guest is a foreseeable hazard on both."},
+{c:"Liability",q:"An establishment's liquor liability insurance means individual staff:",o:["Can never be sued","Can still be named personally in a lawsuit and charged under the law","Are automatically covered for criminal charges","Do not need certification"],a:1,e:"Insurance covers money, not conduct. It does not stop you from being named in a claim or charged, and it will not renew after repeated incidents."},
+{c:"Liability",q:"What is the strongest protection a server has against liability?",o:["A signed waiver from the guest","Consistently following the law and house policy, and documenting what you did","Serving only beer","Working short shifts"],a:1,e:"Demonstrating that you monitored, intervened, refused and documented is the defence. There is no waiver a customer can sign that removes your duty."},
+{c:"Liability",q:"A patron signs a note saying the bar is not responsible if he drives home drunk. What is that worth?",o:["It fully protects the bar","Nothing — you cannot contract out of a duty of care owed to the public","It protects the server but not the owner","It protects the bar for one night"],a:1,e:"The duty is owed partly to third parties who never signed anything. No note from your guest binds the family in the other car."},
+{c:"Liability",q:"Criminal liability could arise for a server if:",o:["A guest complains about the price","Their conduct is criminally negligent, or they knowingly serve a minor","A guest becomes tipsy","They refuse service"],a:1,e:"Selling to minors and grossly negligent service are where criminal exposure lives. Refusing service, by contrast, is the safe path."},
+
+/* ---------- CANNABIS & OTHER DRUGS ---------- */
+{c:"Cannabis & drugs",q:"What is the legal age to buy and use recreational cannabis in Ontario?",o:["18","19","21","25"],a:1,e:"19, the same as alcohol — which makes the ID check identical."},
+{c:"Cannabis & drugs",q:"Can patrons consume cannabis inside a liquor-licensed establishment in Ontario?",o:["Yes, on the patio","Yes, if they are 19 or older","No","Yes, if it is edible rather than smoked"],a:2,e:"Cannabis consumption is not permitted in liquor-licensed premises, in any form, indoors or on the licensed patio."},
+{c:"Cannabis & drugs",q:"Which of these suggests a guest may be impaired by cannabis?",o:["Red eyes, a distinct odour, delayed responses and dry mouth","Ordering dessert","Wearing sunglasses indoors alone","Paying with a card"],a:0,e:"Red eyes, the smell, slowed reactions, poor short-term recall, sudden appetite. Read them together, exactly as you would the signs of alcohol impairment."},
+{c:"Cannabis & drugs",q:"A guest arrives clearly impaired by cannabis and orders a beer. What do you do?",o:["Serve them, it is not alcohol impairment","Refuse alcohol service — the rule covers anyone who appears intoxicated, from any substance","Serve one beer and watch","Ask what they used"],a:1,e:"The law is about the state of the person, not the source. Someone impaired by cannabis, medication or anything else may not be served alcohol."},
+{c:"Cannabis & drugs",q:"Combining alcohol and cannabis is a particular concern because:",o:["It cancels both out","The combined impairment is greater and harder to predict than either alone","It only affects taste","It shortens the effect"],a:1,e:"The effects compound. A guest who seemed manageable on either substance alone can lose coordination and judgement much faster on both."},
+{c:"Cannabis & drugs",q:"You suspect a patron is selling drugs on the premises. What should you do?",o:["Confront them yourself","Report it to your manager immediately","Ignore it if there is no trouble","Ask other guests what they saw"],a:1,e:"Report it and let management handle it. Permitting illegal activity puts the licence at risk, and confronting a dealer yourself is not part of your job."},
+{c:"Cannabis & drugs",q:"A guest says she took a prescription sedative an hour ago and orders a glass of wine. What is the risk?",o:["None, it is prescribed","Sedatives and alcohol are both depressants, so the combined effect can be severe and fast","Only that she will not enjoy it","She will sober up faster"],a:1,e:"Stacking two depressants can push someone into serious impairment on a single drink. Watch her closely and be ready to stop service early."},
+{c:"Cannabis & drugs",q:"A guest leaves a drink unattended and returns to find it moved. What is the safest thing to do?",o:["Tell them it is fine","Remove the drink and replace it — a tampered drink is a real risk","Ask nearby guests","Have them smell it first"],a:1,e:"Never let a guest drink something that was out of their sight and disturbed. Replace it, and report the concern to your manager."},
+
+/* ---------- ON THE JOB ---------- */
+{c:"On the job",q:"What is the purpose of a house policy on alcohol service?",o:["To increase sales","To give staff a clear, consistent standard for serving, refusing and handling incidents","To satisfy insurance only","To set staff schedules"],a:1,e:"It turns judgement calls into shared rules, so every server does the same thing and nobody is left improvising alone at 1 a.m."},
+{c:"On the job",q:"How should drinks be measured at the bar?",o:["Free-poured by feel","With a measure or jigger, to a consistent standard portion","Generously for regulars","By the customer's request"],a:1,e:"Consistent measures are the only way anyone can know what a guest has actually consumed — and free-pouring routinely doubles a standard drink."},
+{c:"On the job",q:"A guest asks for a 'strong one' with extra alcohol at no extra charge. What do you do?",o:["Pour a double as a favour","Serve the standard measure and offer to sell a second measure if they want it","Add extra and charge more later","Refuse to serve them anything"],a:1,e:"Over-pouring wrecks your drink count and pushes the guest toward intoxication faster than either of you is tracking."},
+{c:"On the job",q:"Offering appealing non-alcoholic options and food matters because:",o:["It raises the average bill only","It gives guests a genuine way to slow down and stay longer safely","It is required by law","It reduces staffing needs"],a:1,e:"Good mocktails, coffee and food are your most-used tools. Slowing service works far better when there is something worth switching to."},
+{c:"On the job",q:"What should you do before starting a shift at a new establishment?",o:["Nothing, service is the same everywhere","Learn the house policy, where the incident log is, and who to go to about a refusal","Memorize the wine list","Ask about the tip pool"],a:1,e:"Policy, log book and chain of command. Knowing who backs you up before you need them is what makes a refusal go smoothly."},
+{c:"On the job",q:"Your establishment is very busy and you are falling behind. How does that affect your responsibilities?",o:["They are relaxed when it is busy","They do not change at all — ID checks and monitoring are required regardless","Only ID checks still apply","Only the manager is responsible when busy"],a:1,e:"'We were slammed' has never been a defence. If volume makes safe service impossible, that is a staffing problem to raise with management."},
+{c:"On the job",q:"A coworker is serving a guest you believe is intoxicated. What should you do?",o:["Say nothing, it is their table","Quietly share what you have observed with them, and involve the manager if needed","Announce it to the room","Serve the guest yourself instead"],a:1,e:"Responsible service is a shared job. A quiet word gives your coworker information they may simply not have had from their side of the room."},
+{c:"On the job",q:"What belongs in an incident log entry?",o:["Only the guest's name","Date, time, what you observed, what you did, and who else was involved","Your opinion of the guest","The bill total"],a:1,e:"Facts and actions, written the same night. Skip characterizations — what you observed and what you did is what carries weight later."},
+{c:"On the job",q:"A guest complains that another table is being served while she has been cut off. What do you say?",o:["Apologize and serve her","Explain calmly that the decision is based on what you observed with her, and offer food, water or a ride","Cut off the other table too","Tell her to leave"],a:1,e:"Keep it short, specific to her, and non-negotiable, then move straight to what you can offer. Do not discuss other guests."},
+{c:"On the job",q:"The safest general approach to alcohol service can be summed up as:",o:["Serve whatever is ordered until there is a problem","Watch from the first drink, pace the service, step in early, and document","Cut everyone off at three drinks","Rely on the guest to know their limit"],a:1,e:"Monitor, pace, intervene early, record. Every one of those steps is easier and safer than the conversation you get by waiting."},
+{c:"On the job",q:"A large party has booked and prepaid a bar tab. Does that change your obligations?",o:["Yes, prepaid drinks must be served","No — you must still refuse anyone who is or appears intoxicated, prepaid or not","Only the host can be refused","Yes, until the tab runs out"],a:1,e:"Money paid in advance buys nothing you are not permitted to serve. Agree the ground rules with the host at the booking stage."},
+{c:"On the job",q:"Why should servers avoid drinking alcohol while on shift?",o:["It is only a tradition","Impaired judgement makes it impossible to monitor guests reliably, and it is against policy and the rules","It slows down service","It costs the house money"],a:1,e:"The person doing the assessing has to be the sober one in the room. Drinking on shift is prohibited under house policy and the liquor rules alike."},
+{c:"On the job",q:"A guest at last call orders four drinks 'to get ahead'. What do you do?",o:["Serve all four, it is last call","Refuse to serve a stockpile — it encourages immoderate consumption","Serve two now and two later","Serve four but water them down"],a:1,e:"Stockpiling at last call is a classic over-consumption pattern, and it lands people in the parking lot far drunker than they were when they ordered."},
+{c:"On the job",q:"What should you do if you are unsure whether to serve someone?",o:["Serve them and watch closely","Do not serve, and check with your manager — the doubt is itself the answer","Ask the guest what they think","Serve a smaller portion"],a:1,e:"There is no penalty for a refusal that turns out to be cautious, and a long list of them for the reverse."},
+/* ---------- NAMED SCENARIOS (the style the real test leans on) ---------- */
+{c:"Spotting intoxication",q:"John has served Marcus three pints over about ninety minutes. Marcus is now talking noticeably louder than when he arrived, has repeated the same story twice, and just knocked over his empty glass reaching for the menu. He orders a fourth. What should John do?",o:["Serve the fourth pint — three drinks in ninety minutes is within a normal pace","Stop alcohol service now, offer food and water, and let his manager know","Serve it, but make it a half pint instead","Wait until Marcus shows one more sign before doing anything"],a:1,e:"Marcus is showing changes in speech, judgement and coordination all at once. That is not 'approaching' intoxication, it is intoxication, and serving a fourth is the decision a liability case would be built around. Drink count never overrides what you can see."},
+{c:"Spotting intoxication",q:"Priya notices a guest at the bar who has had only one glass of wine but is slurring and struggling to get her card out of her wallet. The guest insists she is fine. What should Priya conclude?",o:["One drink cannot cause impairment, so something else must be wrong and she can keep serving","Impairment is judged by what you observe, not the drink count — she stops service and checks the guest is alright","She should serve a second glass to see whether it gets worse","She should ask the guest how much she drank before arriving and serve if the answer is 'nothing'"],a:1,e:"Medication, fatigue, an empty stomach or drinking before arrival can all put someone here on one glass. What you observe always outranks the count — and the fact that it does not add up is itself a reason to check on her."},
+{c:"Refusing service",q:"Dev cuts off a guest who has become unsteady. The guest gets loud, says he is a regular who spends a fortune here, and demands the manager. What is Dev's best move?",o:["Serve one more to calm him down, then stop","Stay calm, avoid arguing, hold the refusal, and bring the manager over","Tell him loudly that he is drunk so nearby guests understand","Ask a coworker to serve him instead"],a:1,e:"Get the manager, stay calm, and do not reopen the decision. A refusal that collapses under pressure teaches every regular that volume works — and Dev remains personally liable whether or not the guest is a big spender."},
+{c:"Refusing service",q:"At closing, Amara refuses service to Ben, who is clearly intoxicated. Ben pulls out his car keys and heads for the door saying he only lives five minutes away. What should Amara do?",o:["Nothing — once he is out the door it is no longer her concern","Try to stop him: offer a taxi or rideshare, call someone for him, involve her manager, and call police with his plate if he still drives","Physically take the keys out of his hand","Let him go but write it in the log book afterwards"],a:1,e:"Duty of care follows the guest onto the road. Amara should exhaust every reasonable option — ride, phone a friend, manager — and if he still gets in the car, call police with a description and plate. She may ask for the keys but cannot seize them, and logging it afterwards is not a substitute for acting."},
+{c:"Refusing service",q:"Tanya's manager tells her to keep serving a table of intoxicated guests because they are spending heavily and it is a slow night. What should Tanya do?",o:["Follow the instruction — the manager carries the responsibility","Refuse to serve them; she remains personally liable and 'I was told to' is not a defence","Serve them watered-down drinks as a compromise","Serve them but ask the manager to put the instruction in writing"],a:1,e:"Liability under the liquor law is personal as well as corporate. Tanya can be charged and sued regardless of who told her to pour, and a written instruction to break the law protects nobody. Being pressured to over-serve is something to escalate, not to comply with."},
+{c:"Checking ID",q:"Two young men order beer. Sam checks the first ID — valid Ontario licence, 22. The second man laughs and says 'I'm with him, my wallet's in the car.' What should Sam do?",o:["Serve them both since the first ID checked out","Serve only the man with valid ID, and watch that the beer is not passed to his friend","Refuse both of them","Serve the second man if his friend confirms he is over 19"],a:1,e:"Being vouched for is not identification. Sam serves the one who produced valid ID, then stays alert — if that beer slides across the bar, it becomes a third-party sale that Sam is responsible for."},
+{c:"Checking ID",q:"A guest hands Rosa a driver's licence. The photo resembles her, but the laminate feels slightly raised around the birth year and the edge is peeling. What should Rosa do?",o:["Serve her — the photo matches, which is what matters","Refuse service, hand the ID back, tell the manager, and record the incident","Keep the ID and hand it to police at the end of the night","Serve her but only non-alcoholic drinks without explaining why"],a:1,e:"Raised laminate and peeling edges around the date are classic tampering signs. Rosa refuses and documents it — but she has no authority to confiscate the card, so it goes back to the guest."},
+{c:"Checking ID",q:"Nadia refuses to serve a man who cannot produce ID. He accuses her of singling him out because of his accent. How should Nadia have protected herself from this?",o:["By serving him to avoid the complaint","By applying the same ID standard to every guest who appears under the house threshold, every time","By checking only guests she does not recognize","By asking a coworker to make the decision"],a:1,e:"Consistency is the whole defence. A uniform standard applied to everyone under the threshold is both the law and the answer to a discrimination complaint; checking selectively based on appearance, accent or background is indefensible."},
+{c:"Ontario law",q:"It is 2:10 a.m. Liam is clearing tables when a guest asks for one last beer, pointing out the bar is still open for another twenty minutes of cleanup. What should Liam say?",o:["Yes — guests have until 2:45 a.m. to order","No — service must stop at 2:00 a.m.; the 45 minutes after is only to finish drinks already served","Yes, if the guest pays cash","Yes, if the guest is not intoxicated"],a:1,e:"Sale and service end at 2:00 a.m. The 45 minutes that follow are for finishing what is already on the table and clearing every glass by 2:45 — not a grace period for new orders."},
+{c:"Ontario law",q:"Grace is serving a family dinner. The father orders a beer for himself and a second beer 'for my son', who is 17 and sitting at the table. What should Grace do?",o:["Serve both — a parent may authorize their own child","Serve the father only, and make clear the second beer cannot go to the 17-year-old","Serve both if the son does not actually drink it in front of her","Serve the son a beer with a lower alcohol content"],a:1,e:"There is no parental exception in a licensed establishment. Serving the father a drink she knows is destined for his underage son is a third-party sale, and Grace is responsible for who ends up drinking it."},
+{c:"Ontario law",q:"Owen is working a wedding reception run under a Special Occasion Permit. The bride's uncle is visibly intoxicated and asks for another rye. Owen worries about causing a scene at a wedding. What applies here?",o:["SOP events are private, so the intoxication rules do not apply","The rules are identical to a licensed bar — Owen must refuse, and can involve the permit holder","He may serve one more because the family paid for an open bar","He may serve as long as the bride's family takes responsibility"],a:1,e:"An SOP changes where you may serve, not how. Refusal, age checks and liability all follow Owen to the hall — and a prepaid open bar buys nothing he is not permitted to serve."},
+{c:"Ontario law",q:"A table at Yuki's pub buys a pitcher to share. She notices a member of the group who looks about 16 pouring from it into her own glass. What should Yuki do?",o:["Nothing — she served the pitcher to an adult, so her obligation is met","Address the table immediately, remove the pitcher, and check ID on everyone drinking from it","Ask the group to move the pitcher to the other end of the table","Serve the rest of the table but ignore the young guest"],a:1,e:"Yuki is responsible for who consumes the alcohol, not only who paid for it. Shared vessels like pitchers make this a common trap — once she sees a likely minor drinking, she must intervene and card the table."},
+{c:"On the job",q:"Halfway through the night, Elena hands her section to Raj at shift change. Table 12 has been drinking steadily for two hours and Elena has been watching one guest closely. What must she tell Raj?",o:["Just the outstanding food orders and the bill totals","What each guest has had, how long they have been there, and specifically that she is monitoring that guest","Nothing — Raj should form his own impression without bias","Only that the table is a good tipper"],a:1,e:"Without a proper handover, a monitored guest quietly restarts at zero with the next server. The consumption history and the specific concern are the two things that must cross the shift line."},
+{c:"On the job",q:"It is a packed Saturday and Kwame is three tables behind. A group he has not carded is waving him down for a round of shots. What does the pressure change about his obligations?",o:["ID checks can be skipped when the volume makes them impractical","Nothing — monitoring and ID checks are required regardless of how busy it is","He can card just one person from the group to save time","He can serve now and check ID when he brings the bill"],a:1,e:"'We were slammed' has never been a defence in front of the AGCO or a court. If the volume genuinely makes safe service impossible, that is a staffing problem for Kwame to raise with management, not a rule he may skip."},
+{c:"On the job",q:"A grateful regular offers to buy Chloe, who is bartending, a drink to enjoy on her shift. What should she do?",o:["Accept it — one drink will not affect her","Decline politely; drinking on shift is against policy and the rules, and it compromises her judgement","Accept it and drink it after her shift ends","Accept it but only if the manager has left"],a:1,e:"The person doing the assessing has to be the sober one in the room. Chloe can thank him and decline, or accept the gesture as a tip — but not as a drink on shift."},
+{c:"Alcohol & the body",q:"Hassan tells Ivy he has a very high tolerance and can drink all night without feeling it. He has had six drinks in two hours and genuinely seems steady. What is actually true?",o:["His tolerance means his body clears alcohol faster, so he is safe","His blood alcohol is rising exactly as it would in anyone else — tolerance only hides the outward signs","He is safe to drive because he shows no symptoms","Tolerance means he needs more drinks to reach the same blood alcohol level"],a:1,e:"Tolerance masks the signals Ivy relies on while the blood alcohol climbs normally. High-tolerance drinkers are among the most dangerous guests to serve precisely because they look fine right up until they are behind the wheel."},
+{c:"Alcohol & the body",q:"Leo stops serving Fatima at 1:00 a.m. She seemed borderline then, but by 1:30 in the lobby she is plainly drunk despite having nothing since. Why?",o:["She must have been drinking secretly","The last drinks were still being absorbed — blood alcohol can keep rising after the final drink","The cold lobby air increased her impairment","Standing up raised her blood alcohol"],a:1,e:"Alcohol already in the stomach and small intestine keeps entering the bloodstream for a while after the last sip. This is exactly why a guest who looked manageable at last call can be a serious problem in the parking lot."},
+{c:"Alcohol & the body",q:"A guest tells Mira he will be fine to drive after a coffee and some fresh air, since he stopped drinking an hour ago. How should Mira think about that?",o:["An hour plus coffee is generally enough to be safe","Only time lowers blood alcohol — coffee makes him alert but no less impaired, which is more dangerous, not less","Coffee speeds up the liver, so he is probably fine","Fresh air helps the body process alcohol faster"],a:1,e:"Coffee produces a wide-awake drunk: fully confident, still impaired. Nothing but time reduces blood alcohol, and a guest who feels sharp is more likely to overestimate what he can safely do."},
+{c:"Alcohol & the body",q:"Jonah orders three rum-and-colas while his friend orders three rums with still water, over the same hour. Both are the same size and weight. What difference should the server expect?",o:["No difference — the alcohol is identical","Jonah is likely to feel it sooner, because carbonation speeds alcohol into the small intestine","Jonah will feel it less, because the sugar slows absorption","The friend will be affected faster because water dilutes nothing"],a:1,e:"Carbonation pushes alcohol through the stomach into the small intestine, where most absorption happens. Same alcohol, faster arrival — which is why sparkling wine and highballs land quicker than the flat equivalent."},
+{c:"Alcohol & the body",q:"Ade mentions to his server that he took a prescription sedative before coming out, then orders a glass of wine. What is the concern?",o:["None — a prescription is a private matter and does not affect service","Sedatives and alcohol are both depressants, so he may become seriously impaired on a single drink","He will process the alcohol faster than usual","Only the dose of the medication matters, not the alcohol"],a:1,e:"Stacking two central nervous system depressants can produce severe impairment very quickly. The server should watch him closely from the first sip and be ready to stop service far earlier than the drink count suggests."},
+{c:"Cannabis & drugs",q:"Two guests come in from the patio at Noor's bar smelling strongly of cannabis. One has red eyes and is responding slowly. They order beers. What should Noor do?",o:["Serve them — cannabis is legal and the rule only covers alcohol","Refuse alcohol service; the rule covers anyone who appears intoxicated by any substance","Serve one beer each and monitor","Serve them only if they were not smoking on the licensed patio"],a:1,e:"The law is about the state of the person, not the source of it. Someone impaired by cannabis may not be served alcohol — and cannabis consumption is not permitted anywhere on liquor-licensed premises, patio included."},
+{c:"Cannabis & drugs",q:"Following a wedding at Bea's venue, a guest is found unresponsive in a washroom. His skin is cold and clammy and his breathing is slow and irregular. What should Bea do first?",o:["Move him to a quiet room to sleep it off","Call 911, stay with him, and turn him on his side","Give him coffee and walk him around","Wait fifteen minutes to see whether he comes around"],a:1,e:"Those are alcohol poisoning signs, and this is a medical emergency. Call 911, never leave him alone, and turn him on his side so he cannot choke if he vomits. 'Sleeping it off' unattended is how these become fatal."},
+{c:"Liability",q:"A guest Ana served leaves, drives, and injures a pedestrian. Who can face legal consequences?",o:["Only the driver, who made the choice to drive","The driver, the establishment, and potentially Ana personally — through criminal, civil and licence-related proceedings","Only the establishment, since it holds the licence and the insurance","Nobody, provided Ana followed her manager's instructions"],a:1,e:"One incident can trigger all three kinds of liability at once, and injured parties routinely name everyone connected to the harm. The driver's own choice reduces but does not erase the server's share."},
+{c:"Liability",q:"After refusing a guest and arranging a taxi, what should Theo do before he leaves for the night?",o:["Nothing, since the situation ended safely","Write it in the incident log: the time, what he observed, what he did, and who else was involved","Post about it so other venues are warned","Tell the next shift verbally and leave it there"],a:1,e:"A claim can surface a year or more later, long after memory has faded. Contemporaneous notes of what Theo saw and did are the single most useful thing he can leave behind — and the fact it ended well is exactly why the record is easy to write."},
+{c:"Liability",q:"An intoxicated guest's friend offers to drive him home. Zara notices the friend has also been drinking. What should she do?",o:["Release him to the friend — a designated driver is the responsible outcome","Not release him to that driver; arrange a taxi, rideshare or sober contact instead","Let them go but note the plate in the log","Serve the friend a coffee first, then let them drive"],a:1,e:"Handing an intoxicated guest to a driver who has been drinking turns one problem into two. Zara must confirm the driver is actually sober before releasing him, or arrange another way home."},
+{c:"Refusing service",q:"A guest who is visibly pregnant orders a glass of wine. She shows no signs of intoxication. What should the server do?",o:["Refuse service — it would be irresponsible to serve her","Serve her as she would any other guest; refusing solely because she is pregnant is discriminatory under the Ontario Human Rights Code","Serve her only a half glass","Ask her whether her doctor has approved it"],a:1,e:"This one catches people out. Service decisions rest on age and observed intoxication — not on pregnancy, which is protected under the Human Rights Code. Refusing on that basis alone exposes the establishment to a discrimination complaint."},
+{c:"Refusing service",q:"At last call, a guest who is doing fine asks Felix for four drinks at once 'so I don't have to line up again'. What should Felix do?",o:["Serve all four — the guest is not intoxicated and it is a legitimate order","Decline the stockpile; serving a pile of drinks at closing encourages immoderate consumption","Serve four but bring them out one at a time over twenty minutes","Serve two and refuse the other two without explanation"],a:1,e:"Stockpiling at last call is a textbook over-consumption pattern, and it is exactly how a guest who was fine at 1:45 ends up badly impaired in the parking lot at 2:15 — with no time left to intervene."}
+
+];
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  const QUIZ_LENGTH = 33;
+  const PASS_PCT = 80;
+  const PASS_MARK = Math.ceil(QUIZ_LENGTH * PASS_PCT / 100); // 27 of 33
+  const STORE_KEY = "smartserve.v1";
+
+  /* ---------- stable id per question (survives adding/reordering) ---------- */
+  function hashId(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+    return "q" + (h >>> 0).toString(36);
+  }
+  BANK.forEach(q => { q.id = hashId(q.q); });
+  const BY_ID = Object.create(null);
+  BANK.forEach(q => { BY_ID[q.id] = q; });
+
+  /* ---------- storage ---------- */
+  const blankStore = () => ({ attempts: [], stats: {} });
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return blankStore();
+      const d = JSON.parse(raw);
+      return {
+        attempts: Array.isArray(d.attempts) ? d.attempts : [],
+        stats: (d.stats && typeof d.stats === "object") ? d.stats : {}
+      };
+    } catch (e) { return blankStore(); }
+  }
+  function save(d) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) { /* private mode */ }
+  }
+  let store = load();
+
+  /* ---------- helpers ---------- */
+  const $ = id => document.getElementById(id);
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+           d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  /* ---------- view routing ---------- */
+  const VIEWS = ["view-home", "view-quiz", "view-results", "view-history", "view-facts"];
+  const TABS = { "view-home": "tab-practice", "view-quiz": "tab-practice", "view-results": "tab-practice",
+                 "view-history": "tab-history", "view-facts": "tab-facts" };
+  function show(viewId) {
+    VIEWS.forEach(v => { $(v).hidden = (v !== viewId); });
+    const active = TABS[viewId];
+    ["tab-practice", "tab-history", "tab-facts"].forEach(t => {
+      $(t).setAttribute("aria-selected", String(t === active));
+    });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  $("tab-practice").onclick = () => show(quiz.active ? "view-quiz" : "view-home");
+  $("tab-history").onclick  = () => { renderHistory(); show("view-history"); };
+  $("tab-facts").onclick    = () => show("view-facts");
+
+  /* ---------- mode toggle ---------- */
+  let instantFeedback = true;
+  function setMode(instant) {
+    instantFeedback = instant;
+    $("mode-study").setAttribute("aria-pressed", String(instant));
+    $("mode-exam").setAttribute("aria-pressed", String(!instant));
+  }
+  $("mode-study").onclick = () => setMode(true);
+  $("mode-exam").onclick  = () => setMode(false);
+
+  /* ---------- quiz engine ---------- */
+  const quiz = { active: false, qs: [], i: 0, results: [], answered: false, drill: false };
+
+  function buildQuestions(drill) {
+    if (drill) {
+      const missed = Object.keys(store.stats)
+        .filter(id => BY_ID[id] && store.stats[id].wrong > 0)
+        .sort((a, b) => store.stats[b].wrong - store.stats[a].wrong);
+      if (missed.length) {
+        // Lead with what she gets wrong most, top up with fresh questions to a full test.
+        const pick = shuffle(missed).slice(0, QUIZ_LENGTH);
+        if (pick.length < QUIZ_LENGTH) {
+          const chosen = new Set(pick);
+          const filler = shuffle(BANK.filter(q => !chosen.has(q.id))).slice(0, QUIZ_LENGTH - pick.length);
+          filler.forEach(q => pick.push(q.id));
+        }
+        return shuffle(pick).map(id => BY_ID[id]);
+      }
+    }
+    return shuffle(BANK).slice(0, QUIZ_LENGTH);
+  }
+
+  function startQuiz(drill) {
+    quiz.active = true;
+    quiz.drill = !!drill;
+    quiz.qs = buildQuestions(drill);
+    quiz.i = 0;
+    quiz.results = [];
+    show("view-quiz");
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const q = quiz.qs[quiz.i];
+    quiz.answered = false;
+
+    $("q-counter").textContent = "QUESTION " + (quiz.i + 1) + " OF " + quiz.qs.length;
+    const correctSoFar = quiz.results.filter(r => r.correct).length;
+    $("q-tally").textContent = correctSoFar + " CORRECT";
+    $("progress-fill").style.width = (quiz.i / quiz.qs.length * 100) + "%";
+    $("q-category").textContent = q.c;
+    $("q-text").textContent = q.q;
+    $("q-feedback").innerHTML = "";
+    $("btn-next").hidden = true;
+    $("btn-next").textContent = (quiz.i === quiz.qs.length - 1) ? "See my results →" : "Next question →";
+
+    // Shuffle the options so the answer is never in a predictable slot.
+    const order = shuffle(q.o.map((text, idx) => ({ text, idx })));
+    const box = $("q-options");
+    box.innerHTML = "";
+    order.forEach((opt, pos) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt";
+      b.dataset.idx = String(opt.idx);
+      b.innerHTML = '<span class="opt-key" aria-hidden="true">' + "ABCD"[pos] + '</span><span>' + esc(opt.text) + '</span>';
+      b.onclick = () => answer(opt.idx, b);
+      box.appendChild(b);
+    });
+  }
+
+  function answer(chosenIdx, buttonEl) {
+    if (quiz.answered) return;
+    quiz.answered = true;
+
+    const q = quiz.qs[quiz.i];
+    const correct = chosenIdx === q.a;
+    quiz.results.push({ id: q.id, chosen: chosenIdx, correct: correct });
+
+    // Record against lifetime stats immediately, so a quit mid-test still counts.
+    const s = store.stats[q.id] || (store.stats[q.id] = { seen: 0, wrong: 0 });
+    s.seen++;
+    if (!correct) s.wrong++;
+    save(store);
+
+    const buttons = Array.from($("q-options").children);
+    buttons.forEach(b => { b.disabled = true; });
+
+    if (instantFeedback) {
+      buttons.forEach(b => {
+        if (Number(b.dataset.idx) === q.a) b.classList.add("is-correct");
+      });
+      if (!correct) buttonEl.classList.add("is-wrong");
+      const fb = document.createElement("div");
+      fb.className = "feedback " + (correct ? "ok" : "no");
+      fb.innerHTML = '<div class="feedback-title">' + (correct ? "Correct" : "Not quite — the answer is “" + esc(q.o[q.a]) + "”") + "</div><p>" + esc(q.e) + "</p>";
+      $("q-feedback").appendChild(fb);
+    } else {
+      buttonEl.classList.add("is-chosen");
+    }
+
+    $("btn-next").hidden = false;
+    $("btn-next").focus({ preventScroll: true });
+  }
+
+  $("btn-next").onclick = () => {
+    quiz.i++;
+    if (quiz.i >= quiz.qs.length) finish();
+    else renderQuestion();
+  };
+
+  $("btn-quit").onclick = () => {
+    if (quiz.results.length && !confirm("Stop this test? Your answers so far are still recorded in your history.")) return;
+    quiz.active = false;
+    show("view-home");
+    renderHome();
+  };
+
+  /* ---------- results ---------- */
+  function finish() {
+    quiz.active = false;
+    const total = quiz.qs.length;
+    const score = quiz.results.filter(r => r.correct).length;
+    const pct = Math.round(score / total * 100);
+    const passed = pct >= PASS_PCT;
+
+    store.attempts.unshift({
+      t: Date.now(), score: score, total: total, pct: pct, passed: passed,
+      drill: quiz.drill,
+      missed: quiz.results.filter(r => !r.correct).map(r => r.id)
+    });
+    store.attempts = store.attempts.slice(0, 60);
+    save(store);
+
+    $("progress-fill").style.width = "100%";
+    $("ring-pct").textContent = pct + "%";
+    const arc = $("ring-arc");
+    arc.setAttribute("stroke", passed ? "var(--good)" : "var(--amber)");
+    arc.style.transition = "stroke-dashoffset .7s ease";
+    arc.setAttribute("stroke-dashoffset", String(283));
+    requestAnimationFrame(() => arc.setAttribute("stroke-dashoffset", String(283 - 283 * pct / 100)));
+
+    const pill = $("result-pill");
+    pill.className = "pill " + (passed ? "pass" : "fail");
+    pill.textContent = passed ? "Pass" : "Not yet";
+
+    $("result-title").textContent = passed
+      ? (pct === 100 ? "Perfect test." : "That's a pass.")
+      : "Close — keep going.";
+    $("result-sub").textContent = score + " of " + total + " right. You need " +
+      PASS_MARK + " to reach the " + PASS_PCT + "% pass mark." +
+      (passed ? "" : " Go over the ones below and try a fresh set.");
+
+    const missed = quiz.results.filter(r => !r.correct);
+    const card = $("misses-card");
+    if (!missed.length) {
+      card.hidden = true;
+    } else {
+      card.hidden = false;
+      $("misses-title").textContent = missed.length === 1
+        ? "The one you missed"
+        : "The " + missed.length + " you missed";
+      const list = $("misses-list");
+      list.innerHTML = "";
+      missed.forEach(r => {
+        const q = BY_ID[r.id];
+        const el = document.createElement("div");
+        el.className = "miss";
+        el.innerHTML =
+          '<div class="miss-q">' + esc(q.q) + '</div>' +
+          '<div class="miss-line"><span class="lbl">You said</span><span class="yours">' + esc(q.o[r.chosen]) + '</span></div>' +
+          '<div class="miss-line"><span class="lbl">Answer</span><span class="right">' + esc(q.o[q.a]) + '</span></div>' +
+          '<div class="miss-why">' + esc(q.e) + '</div>';
+        list.appendChild(el);
+      });
+    }
+    show("view-results");
+  }
+
+  $("btn-again").onclick = () => startQuiz(false);
+  $("btn-home").onclick  = () => { renderHome(); show("view-home"); };
+  $("btn-start").onclick = () => startQuiz(false);
+  $("btn-redo").onclick  = () => startQuiz(true);
+
+  /* ---------- home ---------- */
+  function renderHome() {
+    const a = store.attempts;
+    $("stat-taken").textContent = a.length;
+    if (a.length) {
+      const best = a.reduce((m, x) => Math.max(m, x.pct), 0);
+      $("stat-best").textContent = best + "%";
+      $("stat-last").textContent = a[0].pct + "%";
+    } else {
+      $("stat-best").textContent = "—";
+      $("stat-last").textContent = "—";
+    }
+    const anyWrong = Object.keys(store.stats).some(id => BY_ID[id] && store.stats[id].wrong > 0);
+    $("btn-redo").hidden = !anyWrong;
+  }
+
+  /* ---------- history ---------- */
+  function renderHistory() {
+    const list = $("history-list");
+    list.innerHTML = "";
+    if (!store.attempts.length) {
+      list.innerHTML = '<p class="empty">No tests yet. Once you finish one, every score shows up here so you can watch it climb.</p>';
+    } else {
+      store.attempts.slice(0, 25).forEach(at => {
+        const el = document.createElement("div");
+        el.className = "attempt";
+        el.innerHTML =
+          '<span class="attempt-score">' + at.score + "/" + at.total + '</span>' +
+          '<span class="attempt-meta"><span class="pill ' + (at.passed ? "pass" : "fail") + '">' +
+            (at.passed ? "Pass" : "Not yet") + '</span> ' + at.pct + "%" +
+            (at.drill ? " &middot; problem questions" : "") + '</span>' +
+          '<span class="attempt-date">' + esc(fmtDate(at.t)) + '</span>';
+        list.appendChild(el);
+      });
+    }
+
+    // Topic breakdown
+    const topics = {};
+    Object.keys(store.stats).forEach(id => {
+      const q = BY_ID[id]; if (!q) return;
+      const t = topics[q.c] || (topics[q.c] = { seen: 0, wrong: 0 });
+      t.seen += store.stats[id].seen;
+      t.wrong += store.stats[id].wrong;
+    });
+    const tl = $("topic-list");
+    tl.innerHTML = "";
+    const accuracy = t => Math.round((t.seen - t.wrong) / t.seen * 100);
+    const names = Object.keys(topics).filter(n => topics[n].seen > 0)
+      .sort((x, y) => accuracy(topics[x]) - accuracy(topics[y]));
+    if (!names.length) {
+      tl.innerHTML = '<p class="empty">Answer some questions and this will show which topics are costing you marks.</p>';
+    } else {
+      names.forEach(n => {
+        const t = topics[n];
+        const right = accuracy(t);
+        const el = document.createElement("div");
+        el.className = "topic";
+        el.innerHTML =
+          '<div class="bar-row">' +
+            '<span class="bar-name">' + esc(n) + '</span>' +
+            '<span class="bar-num">' + right + "% &middot; " + (t.seen - t.wrong) + "/" + t.seen + "</span>" +
+            '<span class="bar-track"><span class="bar-fill" style="width:' + Math.max(right, 2) + '%;background:' +
+              (right >= 80 ? "var(--good)" : right >= 55 ? "var(--amber)" : "var(--bad)") + '"></span></span>' +
+          '</div>';
+        tl.appendChild(el);
+      });
+    }
+
+    // Problem questions
+    const weak = Object.keys(store.stats)
+      .filter(id => BY_ID[id] && store.stats[id].wrong > 0)
+      .sort((a, b) => store.stats[b].wrong - store.stats[a].wrong)
+      .slice(0, 15);
+    const wl = $("weak-list");
+    wl.innerHTML = "";
+    if (!weak.length) {
+      wl.innerHTML = '<p class="empty">Nothing here yet — which is the good version of this list.</p>';
+      $("btn-drill").hidden = true;
+    } else {
+      weak.forEach(id => {
+        const q = BY_ID[id], s = store.stats[id];
+        const el = document.createElement("div");
+        el.className = "miss";
+        el.innerHTML =
+          '<div class="miss-q">' + esc(q.q) + '</div>' +
+          '<div class="miss-line"><span class="lbl">Answer</span><span class="right">' + esc(q.o[q.a]) + '</span></div>' +
+          '<div class="miss-why">' + esc(q.e) + '</div>' +
+          '<div class="bar-num">Missed ' + s.wrong + " of " + s.seen + " " + (s.seen === 1 ? "time" : "times") + " seen</div>";
+        wl.appendChild(el);
+      });
+      $("btn-drill").hidden = false;
+    }
+  }
+
+  $("btn-drill").onclick = () => startQuiz(true);
+  $("btn-clear").onclick = () => {
+    if (!confirm("Erase every score and every recorded mistake? This cannot be undone.")) return;
+    store = blankStore();
+    save(store);
+    renderHistory();
+    renderHome();
+  };
+
+  /* ---------- key facts ---------- */
+  const FACTS = [
+    ["Ages and timing", [
+      "<b class='num'>19</b> — legal drinking age in Ontario.",
+      "<b class='num'>18</b> — minimum age to sell, serve, deliver or handle alcohol.",
+      "<b class='num'>19</b> — legal age for recreational cannabis.",
+      "<b class='num'>5 years</b> — how long a Smart Serve certificate lasts.",
+      "<b class='num'>9:00 a.m. to 2:00 a.m.</b> — permitted hours to sell and serve.",
+      "<b class='num'>3:00 a.m.</b> — the extended cut-off on New Year's Eve only.",
+      "<b class='num'>45 minutes</b> — time to finish drinks and clear everything after service ends."
+    ]],
+    ["The real test, and this one", [
+      "The real final test is <b class='num'>33</b> multiple-choice questions, <b>randomly generated</b> — so no two people sit the same paper.",
+      "<b class='num'>80%</b> to pass. On 33 questions that is <b class='num'>27</b> correct.",
+      "It is <b>proctored and untimed</b>, but you cannot leave the camera view once you start. Most people finish in <b class='num'>30&ndash;45 minutes</b>.",
+      "This practice test mirrors that: <b class='num'>33</b> questions drawn fresh from a bank of <b class='num'>" + BANK.length + "</b>, with the answer choices shuffled too."
+    ]],
+    ["One standard drink", [
+      "<b class='num'>12 oz / 341 mL</b> of 5% beer.",
+      "<b class='num'>5 oz / 142 mL</b> of 12% wine.",
+      "<b class='num'>1.5 oz / 43 mL</b> of 40% spirits.",
+      "All three carry the same amount of pure alcohol.",
+      "The body clears roughly <b>one standard drink per hour</b> — and <b>only time</b> lowers blood alcohol."
+    ]],
+    ["Identification", [
+      "Acceptable ID is <b>valid, government-issued</b>, and shows a <b>photo, the name and the date of birth</b>.",
+      "Accepted: Ontario driver's licence, Ontario Photo Card, Canadian passport, Canadian Armed Forces ID, Permanent Resident Card, Secure Certificate of Indian Status, LCBO BYID card.",
+      "Not accepted: health card, birth certificate, student card, SIN card, expired ID, photocopies.",
+      "Check the <b>photo, the birthdate, the expiry date</b>, and the card for tampering — with the ID in your hands.",
+      "You may <b>refuse service</b> over a suspect ID. You may <b>not seize it</b>."
+    ]],
+    ["The four groups of signs", [
+      "Changes in <b>speech</b> — slurring, louder, slower.",
+      "Loss of <b>inhibitions</b> — over-familiar, foul-mouthed, unusually loud.",
+      "Poor <b>judgement</b> — reckless spending, arguing, insisting on driving.",
+      "Slowed <b>coordination and reaction time</b> — fumbling, spilling, swaying.",
+      "Watch from the <b>first drink</b> so you have a baseline to compare against."
+    ]],
+    ["The three kinds of liability", [
+      "<b>Criminal</b> — charges under the Criminal Code.",
+      "<b>Civil</b> — being sued for damages, including by injured third parties.",
+      "<b>Regulatory</b> — penalties, suspension or loss of the licence under the Liquor Licence and Control Act, 2019.",
+      "All three can follow one incident, and the <b>server can be named personally</b>. Following orders is not a defence."
+    ]],
+    ["Refusing well", [
+      "Refuse <b>early</b>, <b>quietly</b> and <b>privately</b>. Be firm, never judgemental.",
+      "Use “I can't serve you any more alcohol tonight” — then offer food, water or coffee.",
+      "Don't argue or debate. Repeat it calmly and get your manager if needed.",
+      "Arrange a safe ride. You may <b>ask</b> for keys but cannot take them; call police if they still drive.",
+      "<b>Write it in the incident log</b> the same night: what you saw, what you did."
+    ]],
+    ["Always prohibited", [
+      "Serving anyone who <b>is or appears intoxicated</b>, whatever they drank or where.",
+      "Serving anyone <b>under 19</b> — no parental exception in a licensed establishment.",
+      "<b>Third-party sales</b> — selling to an adult who passes it to a minor.",
+      "Anything encouraging <b>immoderate consumption</b>: all-you-can-drink, drinking contests, stockpiling at last call.",
+      "<b>Cannabis consumption</b> anywhere on liquor-licensed premises."
+    ]]
+  ];
+  (function renderFacts() {
+    const box = $("facts-body");
+    FACTS.forEach(([title, items]) => {
+      const g = document.createElement("div");
+      g.className = "kf-group";
+      g.innerHTML = '<div class="kf-h">' + title + '</div><ul class="kf-list">' +
+        items.map(i => "<li><span>" + i + "</span></li>").join("") + "</ul>";
+      box.appendChild(g);
+    });
+  })();
+
+  /* ---------- keyboard: 1-4 to answer, Enter to advance ---------- */
+  document.addEventListener("keydown", e => {
+    if ($("view-quiz").hidden) return;
+    if (e.key >= "1" && e.key <= "4" && !quiz.answered) {
+      const b = $("q-options").children[Number(e.key) - 1];
+      if (b) b.click();
+    } else if (e.key === "Enter" && quiz.answered) {
+      $("btn-next").click();
+    }
+  });
+
+  /* ---------- go ---------- */
+  setMode(true);
+  renderHome();
+  show("view-home");
+})();
+</script>
+</body>
+</html>

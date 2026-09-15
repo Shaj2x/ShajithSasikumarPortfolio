@@ -518,3 +518,67 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
   .faq .ans{transition:none}
   .btn:active,.nav-cta:active{transform:none}
 }
+
+/* ---------- scroll progress ---------- */
+.prog{position:fixed;left:0;top:0;height:2px;width:100%;z-index:120;transform-origin:left center;
+  transform:scaleX(var(--p,0));background:var(--accent);
+  box-shadow:0 0 10px rgba(159,216,255,.55);pointer-events:none}
+
+/* ---------- about ---------- */
+.about-grid{margin-top:46px;display:grid;gap:clamp(32px,5vw,64px)}
+@media (min-width:900px){.about-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}}
+.about-copy{display:grid;gap:20px}
+.about-copy p{color:var(--text-secondary);max-width:58ch}
+.facts{margin:0;border-top:1px solid var(--line)}
+.facts > div{display:flex;justify-content:space-between;gap:18px;align-items:baseline;
+  padding:13px 0;border-bottom:1px solid var(--line)}
+.facts dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+.facts dd{margin:0;font-size:.95rem;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- toolkit ---------- */
+.kit{margin:46px 0 0;display:grid;gap:1px;background:var(--line);border-block:1px solid var(--line)}
+@media (min-width:760px){.kit{grid-template-columns:1fr 1fr}}
+.kit > div{background:var(--canvas);padding:26px clamp(20px,2.4vw,32px)}
+.kit dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.kit dd{margin:12px 0 0;color:var(--text-secondary);font-size:.97rem}
+
+/* ---------- games ---------- */
+.game-tabs{display:flex;gap:8px;margin-top:40px}
+.game-tab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:11px 22px;border-radius:999px;background:transparent;color:var(--text-secondary);
+  border:1px solid var(--line-bright);cursor:pointer;
+  transition:border-color var(--t-ui) var(--ease-out),color var(--t-ui) var(--ease-out),
+             transform var(--t-press) var(--ease-out)}
+.game-tab[aria-selected="true"]{border-color:var(--accent);color:var(--accent)}
+.game-tab:active{transform:scale(.97)}
+@media (pointer:coarse){.game-tab{min-height:44px}}
+
+.game-stage{margin-top:28px}
+.game-hint{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.game-hint b{color:var(--text-primary);font-weight:400}
+.game-frame{position:relative;display:inline-block;max-width:100%;margin-top:18px;
+  border:1px solid var(--line-bright);background:var(--canvas)}
+.game-frame canvas{display:block;max-width:100%;height:auto;background:var(--canvas)}
+.game-over{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:18px;
+  background:rgba(11,13,16,.86);opacity:1;transition:opacity var(--t-ui) var(--ease-out)}
+.game-over[hidden]{display:none}
+.game-result{font-family:var(--display);font-weight:600;font-size:1.3rem;color:var(--accent)}
+.game-result:empty{display:none}
+.game-score{margin-top:16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-dim);font-variant-numeric:tabular-nums}
+
+/* ---------- the page wipe ----------
+   Jumping from the hero to a section below it skipped the whole draw, which
+   read as the page breaking. The wipe covers the jump so it lands as a cut
+   rather than a teleport. Purpose: preventing a jarring change. */
+.wipe{position:fixed;inset:0;z-index:300;background:var(--canvas);pointer-events:none;
+  transform:translateY(100%);will-change:transform}
+.wipe.in{transform:translateY(0);transition:transform 280ms var(--ease-out)}
+.wipe.out{transform:translateY(-100%);transition:transform 420ms var(--ease-out)}
+.wipe-mark{position:absolute;left:50%;top:50%;width:64px;transform:translate(-50%,-50%);
+  color:var(--text-primary);opacity:.5}
+
+@media (prefers-reduced-motion:reduce){
+  .wipe{display:none}
+  .prog{transition:none}
+}

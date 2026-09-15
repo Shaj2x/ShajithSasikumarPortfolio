@@ -507,6 +507,8 @@ document.addEventListener('visibilitychange', function () {
           '<p class="meta">' +
             '<span>' + esc(when) + '</span>' +
             (r.language ? '<span>' + esc(r.language) + '</span>' : '') +
+            (r.stargazers_count ? '<span>' + r.stargazers_count + ' stars</span>' : '') +
+            (r.forks_count ? '<span>' + r.forks_count + ' forks</span>' : '') +
             (WIP.indexOf(r.name) > -1 ? '<span>In progress</span>' : '') +
             (demo ? '<a class="live" href="' + esc(demo) + '" target="_blank" rel="noopener noreferrer">Live demo</a>' : '') +
           '</p></article>';
@@ -604,6 +606,285 @@ document.addEventListener('visibilitychange', function () {
       '?subject=' + encodeURIComponent('Website enquiry from ' + name) +
       '&body=' + encodeURIComponent(body);
     f.classList.add('sent');
+  });
+})();
+
+
+/* ---------- scroll progress ----------
+   Purpose: state indication. It is the only readout of how far through a very
+   tall page you are, and it is cheap: one transform write, throttled. */
+(function progress() {
+  var bar = document.getElementById('prog');
+  if (!bar) return;
+  var last = -1, queued = false;
+  function paint() {
+    queued = false;
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? clamp(window.scrollY / h, 0, 1) : 0;
+    if (Math.abs(p - last) < 0.002) return;
+    last = p;
+    bar.style.setProperty('--p', p.toFixed(4));
+  }
+  window.addEventListener('scroll', function () {
+    if (!queued) { queued = true; requestAnimationFrame(paint); }
+  }, { passive: true });
+  window.addEventListener('resize', paint);
+  paint();
+})();
+
+/* ---------- in-page navigation ----------
+   Jumping from the hero to a section below it used to skip the entire draw in
+   one frame, which read as the page breaking. A wipe covers the jump so it
+   lands as a deliberate cut. Purpose: preventing a jarring change. */
+(function wipeNav() {
+  var wipe = document.getElementById('wipe');
+  if (!wipe) return;
+  var busy = false;
+
+  function jump(el) {
+    var y = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: y, behavior: 'instant' });
+    /* the hero is behind us now, so settle it rather than let the spring
+       animate through the whole mark while nobody is looking */
+    if (typeof target !== 'undefined') {
+      target = shown = heroProgress(); vel = 0;
+      drawMark(shown); updateCaptions(shown);
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var id = a.getAttribute('href').slice(1);
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+
+    e.preventDefault();
+    if (history.replaceState) history.replaceState(null, '', '#' + id);
+
+    if (reduceMQ.matches) { jump(el); el.focus && el.focus({ preventScroll: true }); return; }
+    if (busy) return;
+    busy = true;
+
+    wipe.classList.remove('out');
+    wipe.classList.add('in');
+    setTimeout(function () {
+      jump(el);
+      requestAnimationFrame(function () {
+        wipe.classList.remove('in');
+        wipe.classList.add('out');
+        setTimeout(function () { wipe.classList.remove('out'); busy = false; }, 430);
+      });
+    }, 290);
+  });
+})();
+
+/* ---------- the games ----------
+   Ported from the previous site. Same rules, same speeds, same win condition,
+   now without a framework. Both idle until asked: no loop runs before the
+   first press, and both stop the moment the tab is hidden. */
+(function games() {
+  var tabs   = [].slice.call(document.querySelectorAll('.game-tab'));
+  var panels = { pong: document.getElementById('panel-pong'), snake: document.getElementById('panel-snake') };
+  if (!tabs.length) return;
+
+  var mark = new Image();
+  mark.src = 'assets/ss-mark.png';
+  var markReady = false;
+  mark.onload = function () { markReady = true; };
+
+  function paintTokens() {
+    var cs = getComputedStyle(document.documentElement);
+    var v = function (n, f) { return (cs.getPropertyValue(n) || '').trim() || f; };
+    return { ground: v('--canvas', '#0B0D10'), line: v('--line', '#1E242C'),
+             dim: v('--text-dim', '#5D6773'), mark: v('--accent', '#9FD8FF'),
+             font: "'Sora', system-ui, sans-serif" };
+  }
+
+  /* ---- Pong ---- */
+  (function pong() {
+    var cv = document.getElementById('pong'); if (!cv) return;
+    var ctx = cv.getContext('2d');
+    var W = 600, H = 400, PW = 12, PH = 80, R = 18, SPEED = 5, BALL = 4, WIN = 5;
+    var over = document.getElementById('pong-over'), result = document.getElementById('pong-result'),
+        scoreEl = document.getElementById('pong-score'), startBtn = document.getElementById('pong-start');
+    var g, raf = null, keys = {}, running = false;
+
+    function reset() { g.bx = W / 2; g.by = H / 2;
+      g.vx = BALL * (Math.random() > 0.5 ? 1 : -1); g.vy = BALL * 0.6 * (Math.random() > 0.5 ? 1 : -1); }
+
+    function stop(msg) {
+      running = false;
+      if (raf) cancelAnimationFrame(raf); raf = null;
+      result.textContent = msg || '';
+      over.hidden = false;
+      startBtn.textContent = msg ? 'Play again' : 'Start game';
+    }
+
+    function draw() {
+      var t = paintTokens();
+      ctx.fillStyle = t.ground; ctx.fillRect(0, 0, W, H);
+      ctx.setLineDash([8, 8]); ctx.strokeStyle = t.line; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = t.mark;
+      ctx.fillRect(10, g.py, PW, PH);
+      ctx.fillRect(W - PW - 10, g.cy, PW, PH);
+      if (markReady) {
+        ctx.save(); ctx.beginPath(); ctx.arc(g.bx, g.by, R, 0, 6.2832); ctx.clip();
+        ctx.drawImage(mark, g.bx - R, g.by - R, R * 2, R * 2); ctx.restore();
+      } else { ctx.beginPath(); ctx.arc(g.bx, g.by, R, 0, 6.2832); ctx.fill(); }
+      ctx.fillStyle = t.dim; ctx.font = 'bold 48px ' + t.font; ctx.textAlign = 'center';
+      ctx.fillText(String(g.ps), W / 4, 60); ctx.fillText(String(g.cs), 3 * W / 4, 60);
+    }
+
+    function loop() {
+      if (keys.ArrowUp || keys.w) g.py = Math.max(0, g.py - SPEED);
+      if (keys.ArrowDown || keys.s) g.py = Math.min(H - PH, g.py + SPEED);
+
+      var d = g.by - (g.cy + PH / 2);                 /* dead zone keeps the CPU beatable */
+      if (Math.abs(d) > 30) g.cy += Math.sign(d) * SPEED * 0.4;
+      g.cy = Math.max(0, Math.min(H - PH, g.cy));
+
+      g.bx += g.vx; g.by += g.vy;
+      if (g.by - R <= 0 || g.by + R >= H) g.vy *= -1;
+      if (g.bx - R <= PW + 10 && g.by >= g.py && g.by <= g.py + PH && g.vx < 0) {
+        g.vx *= -1.05; g.vy = ((g.by - g.py) / PH - 0.5) * BALL * 1.5;
+      }
+      if (g.bx + R >= W - PW - 10 && g.by >= g.cy && g.by <= g.cy + PH && g.vx > 0) {
+        g.vx *= -1.05; g.vy = ((g.by - g.cy) / PH - 0.5) * BALL * 1.5;
+      }
+      if (g.bx < 0) { g.cs++; score(); if (g.cs >= WIN) { draw(); return stop('CPU wins'); } reset(); }
+      else if (g.bx > W) { g.ps++; score(); if (g.ps >= WIN) { draw(); return stop('You win'); } reset(); }
+
+      draw();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function score() { scoreEl.textContent = 'You ' + g.ps + ' · CPU ' + g.cs; }
+
+    function start() {
+      g = { py: H / 2 - PH / 2, cy: H / 2 - PH / 2, ps: 0, cs: 0 };
+      reset(); score();
+      over.hidden = true; running = true;
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener('click', start);
+    window.addEventListener('keydown', function (e) {
+      if (!running) return;
+      if (['ArrowUp', 'ArrowDown', 'w', 's'].indexOf(e.key) > -1) { e.preventDefault(); keys[e.key] = true; }
+    });
+    window.addEventListener('keyup', function (e) { keys[e.key] = false; });
+    document.addEventListener('visibilitychange', function () { if (document.hidden && running) stop(); });
+    g = { py: H / 2 - PH / 2, cy: H / 2 - PH / 2, ps: 0, cs: 0 }; reset(); draw();
+  })();
+
+  /* ---- Snake ---- */
+  (function snake() {
+    var cv = document.getElementById('snake'); if (!cv) return;
+    var ctx = cv.getContext('2d');
+    var W = 600, H = 400, CELL = 20, COLS = W / CELL, ROWS = H / CELL, TICK = 120;
+    var over = document.getElementById('snake-over'), result = document.getElementById('snake-result'),
+        scoreEl = document.getElementById('snake-score'), startBtn = document.getElementById('snake-start');
+    var s, timer = null, best = 0, running = false;
+
+    function food(body) {
+      var pt;
+      do { pt = { x: (Math.random() * COLS) | 0, y: (Math.random() * ROWS) | 0 }; }
+      while (body.some(function (b) { return b.x === pt.x && b.y === pt.y; }));
+      return pt;
+    }
+
+    function draw() {
+      var t = paintTokens();
+      ctx.fillStyle = t.ground; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = t.line;
+      for (var x = 0; x < COLS; x++) for (var y = 0; y < ROWS; y++)
+        ctx.fillRect(x * CELL + CELL / 2, y * CELL + CELL / 2, 1, 1);
+
+      if (markReady) {
+        ctx.save(); ctx.beginPath();
+        ctx.arc(s.food.x * CELL + CELL / 2, s.food.y * CELL + CELL / 2, CELL / 2, 0, 6.2832);
+        ctx.clip(); ctx.drawImage(mark, s.food.x * CELL, s.food.y * CELL, CELL, CELL); ctx.restore();
+      } else { ctx.fillStyle = t.mark; ctx.fillRect(s.food.x * CELL, s.food.y * CELL, CELL, CELL); }
+
+      s.body.forEach(function (seg, i) {
+        ctx.globalAlpha = 1 - (i / s.body.length) * 0.6;
+        ctx.fillStyle = t.mark;
+        var pad = i === 0 ? 0 : 2;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(seg.x * CELL + pad, seg.y * CELL + pad, CELL - pad * 2, CELL - pad * 2, 4);
+        else ctx.rect(seg.x * CELL + pad, seg.y * CELL + pad, CELL - pad * 2, CELL - pad * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function stop(msg) {
+      running = false;
+      clearInterval(timer); timer = null;
+      best = Math.max(best, s.score);
+      scoreEl.textContent = 'Score ' + s.score + ' · Best ' + best;
+      result.textContent = msg || '';
+      over.hidden = false;
+      startBtn.textContent = msg ? 'Play again' : 'Start game';
+    }
+
+    function tick() {
+      s.dir = s.next;
+      var head = { x: s.body[0].x, y: s.body[0].y };
+      if (s.dir === 'UP') head.y--; else if (s.dir === 'DOWN') head.y++;
+      else if (s.dir === 'LEFT') head.x--; else head.x++;
+
+      if (head.x < 0 || head.y < 0 || head.x >= COLS || head.y >= ROWS ||
+          s.body.some(function (b) { return b.x === head.x && b.y === head.y; })) {
+        draw(); return stop('Game over');
+      }
+      s.body.unshift(head);
+      if (head.x === s.food.x && head.y === s.food.y) {
+        s.score++; s.food = food(s.body);
+        scoreEl.textContent = 'Score ' + s.score + ' · Best ' + Math.max(best, s.score);
+      } else s.body.pop();
+      draw();
+    }
+
+    function start() {
+      s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT',
+            food: { x: 15, y: ROWS >> 1 }, score: 0 };
+      scoreEl.textContent = 'Score 0 · Best ' + best;
+      over.hidden = true; running = true;
+      clearInterval(timer); timer = setInterval(tick, TICK);
+      draw();
+    }
+
+    var MAP = { ArrowUp: 'UP', w: 'UP', ArrowDown: 'DOWN', s: 'DOWN',
+                ArrowLeft: 'LEFT', a: 'LEFT', ArrowRight: 'RIGHT', d: 'RIGHT' };
+    var OPP = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT' };
+
+    startBtn.addEventListener('click', start);
+    window.addEventListener('keydown', function (e) {
+      if (!running) return;
+      var dir = MAP[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      if (dir !== OPP[s.dir]) s.next = dir;
+    });
+    document.addEventListener('visibilitychange', function () { if (document.hidden && running) stop(); });
+    s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT', food: { x: 15, y: ROWS >> 1 }, score: 0 };
+    draw();
+  })();
+
+  /* ---- tabs ---- */
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        panels[t.dataset.game].hidden = !on;
+      });
+    });
   });
 })();
 
