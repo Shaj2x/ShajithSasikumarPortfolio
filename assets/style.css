@@ -741,9 +741,10 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .kit dd{margin:12px 0 0;color:var(--text-secondary);font-size:.97rem}
 
 /* ---------- games ---------- */
-.game-tabs{display:flex;gap:8px;margin-top:40px}
+.game-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:40px}
 .game-tab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   padding:11px 22px;border-radius:999px;background:transparent;color:var(--text-secondary);
+  white-space:nowrap;
   border:1px solid var(--line-bright);cursor:pointer;
   transition:border-color var(--t-ui) var(--ease-out),color var(--t-ui) var(--ease-out),
              transform var(--t-press) var(--ease-out)}

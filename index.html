@@ -361,13 +361,14 @@
   <div class="wrap">
     <div class="rule"></div>
     <p class="kicker">Play</p>
-    <h2 class="sec-h rev">Three games I wrote instead of sleeping.</h2>
-    <p class="lede rev">All three run entirely in the browser. No engine, no library, no framework. Two canvases and a game loop, and one that is nothing but a clock and your nerve.</p>
+    <h2 class="sec-h rev">Four games I wrote instead of sleeping.</h2>
+    <p class="lede rev">All four run entirely in the browser. No engine, no library, no framework. Three canvases and a game loop, and one that is nothing but a clock and your nerve.</p>
 
     <div class="game-tabs" role="tablist" aria-label="Choose a game">
       <button class="game-tab" role="tab" id="tab-pong" aria-controls="panel-pong" aria-selected="true" data-game="pong">Pong</button>
       <button class="game-tab" role="tab" id="tab-snake" aria-controls="panel-snake" aria-selected="false" data-game="snake">Snake</button>
       <button class="game-tab" role="tab" id="tab-time" aria-controls="panel-time" aria-selected="false" data-game="time">Time it</button>
+      <button class="game-tab" role="tab" id="tab-lift" aria-controls="panel-lift" aria-selected="false" data-game="lift">Updraft</button>
     </div>
 
     <div class="game-stage">
@@ -420,6 +421,18 @@
           <p class="time-verdict" id="t-verdict" aria-live="polite"></p>
         </div>
         <p class="game-score" id="time-score">No rounds yet</p>
+      </div>
+
+      <div class="game-panel" role="tabpanel" id="panel-lift" aria-labelledby="tab-lift" hidden>
+        <p class="game-hint">One button. <b>Space</b>, click, or tap to climb. Everything else is gravity.</p>
+        <div class="game-frame">
+          <canvas id="lift" width="600" height="400" aria-label="Updraft, a one button flying game"></canvas>
+          <div class="game-over" id="lift-over">
+            <p class="game-result" id="lift-result"></p>
+            <button class="btn" id="lift-start" type="button">Start game</button>
+          </div>
+        </div>
+        <p class="game-score" id="lift-score">Score 0 &middot; Best 0</p>
       </div>
     </div>
   </div>

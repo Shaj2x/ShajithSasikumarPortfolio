@@ -1093,13 +1093,15 @@ document.addEventListener('visibilitychange', function () {
   var tabs   = [].slice.call(document.querySelectorAll('.game-tab'));
   var panels = { pong:  document.getElementById('panel-pong'),
                  snake: document.getElementById('panel-snake'),
-                 time:  document.getElementById('panel-time') };
+                 time:  document.getElementById('panel-time'),
+                 lift:  document.getElementById('panel-lift') };
   if (!tabs.length) return;
 
   function paintTokens() {
     var cs = getComputedStyle(document.documentElement);
     var v = function (n, f) { return (cs.getPropertyValue(n) || '').trim() || f; };
     return { ground: v('--canvas', '#0B0D10'), line: v('--line', '#1E242C'),
+             bright: v('--line-bright', '#2E3742'), text: v('--text-primary', '#EEF2F6'),
              dim: v('--text-dim', '#5D6773'), mark: v('--accent', '#9FD8FF'),
              font: "'Sora', system-ui, sans-serif" };
   }
@@ -1124,7 +1126,7 @@ document.addEventListener('visibilitychange', function () {
   }
 
   /* Draws the monogram centred on x,y, sized to fit r, at the given angle. */
-  function drawMark(ctx, x, y, r, colour, spin) {
+  function drawMark(ctx, x, y, r, colour, spin, weight) {
     var g = markGeometry();
     var span = Math.max(MARK_VB.w, MARK_VB.h);
     if (!g.length) {                                   /* no Path2D: a disc still plays */
@@ -1139,7 +1141,7 @@ document.addEventListener('visibilitychange', function () {
     ctx.translate(-(MARK_VB.x + MARK_VB.w / 2), -(MARK_VB.y + MARK_VB.h / 2));
     ctx.strokeStyle = colour;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.lineWidth = 70;                                /* heavy, so it reads small */
+    ctx.lineWidth = weight || 70;                      /* heavy, so it reads small */
     for (var i = 0; i < g.length; i++) ctx.stroke(g[i]);
     ctx.restore();
   }
@@ -1475,6 +1477,262 @@ document.addEventListener('visibilitychange', function () {
     s = { body: [{ x: 5, y: ROWS >> 1 }], dir: 'RIGHT', next: 'RIGHT', food: { x: 15, y: ROWS >> 1 }, score: 0 };
     draw();
     repaint.push(draw);
+  })();
+
+  /* ---- Updraft ----
+     One button, and the mark is the thing you are flying: it tilts with its
+     own velocity, so the glyph reads as nose up under lift and nose down in
+     a dive. Two more uses, both behind the play rather than over it: huge
+     faint marks drift past as the landscape, and a small one sits centred in
+     every gap, which turns the logo into the thing you aim through instead
+     of decoration laid on top. The gates themselves are plain rounded bars,
+     because an obstacle has to be read instantly and a logo shaped one
+     cannot be. */
+  (function updraft() {
+    var cv = document.getElementById('lift'); if (!cv) return;
+    var ctx = cv.getContext('2d');
+    var W = 600, H = 400, STEP = 1 / 120;
+    var R = 15, PX = 150;                    /* the flyer's radius and fixed x */
+    var GRAV = 1250, FLAP = -392, MAXFALL = 620;
+    var BARW = 46;
+    var SKYGAP = 560;                        /* one background mark on screen at a time */
+    var over = document.getElementById('lift-over'),
+        result = document.getElementById('lift-result'),
+        startBtn = document.getElementById('lift-start'),
+        scoreEl = document.getElementById('lift-score');
+    var KEY = 'ss-updraft-best';
+
+    var g = null, raf = null, acc = 0, last = 0, state = 'idle';
+    var best = load();
+
+    function load() {
+      try { var v = parseInt(localStorage.getItem(KEY), 10); return v > 0 ? v : 0; }
+      catch (e) { return 0; }
+    }
+    function save(v) { try { localStorage.setItem(KEY, String(v)); } catch (e) {} }
+
+    /* difficulty: the gap closes and the world speeds up, both to a floor */
+    function gap(n)   { return Math.max(112, 152 - n * 2.2); }
+    function speed(n) { return Math.min(268, 156 + n * 3.4); }
+    function spacing(n) { return Math.max(196, 236 - n * 1.6); }
+
+    /* The landscape is the mark itself, upright and far away. Two of them,
+       spaced wider than the board, so one stands clear at a time: rotated
+       and overlapping they stop reading as a letter and become scribble. */
+    function fresh() {
+      var sky = [{ x: 300, y: skyY(), r: skyR() },
+                 { x: 300 + SKYGAP, y: skyY(), r: skyR() }];
+      return { y: H / 2, vy: 0, score: 0, gates: [], trail: [], sky: sky, dead: 0 };
+    }
+    function skyY() { return 150 + Math.random() * 110; }
+    function skyR() { return 78 + Math.random() * 26; }
+
+    function addGate(at) {
+      var gp = gap(g.score);
+      var top = 42 + Math.random() * (H - gp - 104);
+      g.gates.push({ x: at == null ? W + BARW : at, top: top, gap: gp, passed: false });
+    }
+
+    function flap() {
+      if (state === 'idle') { start(); return; }
+      if (state !== 'running') return;
+      g.vy = FLAP;
+    }
+
+    function step(dt) {
+      g.vy = Math.min(MAXFALL, g.vy + GRAV * dt);
+      g.y += g.vy * dt;
+
+      var v = speed(g.score);
+      for (var i = g.gates.length - 1; i >= 0; i--) {
+        var q = g.gates[i];
+        q.x -= v * dt;
+        if (!q.passed && q.x + BARW < PX - R) { q.passed = true; g.score++; score(); }
+        if (q.x + BARW < -20) g.gates.splice(i, 1);
+      }
+      for (i = 0; i < g.sky.length; i++) {
+        g.sky[i].x -= v * 0.22 * dt;
+        if (g.sky[i].x < -200) {
+          var far = Math.max(g.sky[0].x, g.sky[1].x);
+          g.sky[i].x = far + SKYGAP; g.sky[i].y = skyY(); g.sky[i].r = skyR();
+        }
+      }
+      var lastGate = g.gates[g.gates.length - 1];
+      if (!lastGate || lastGate.x < W - spacing(g.score)) addGate();
+
+      g.trail.push({ x: PX, y: g.y });
+      if (g.trail.length > 46) g.trail.shift();
+      for (i = 0; i < g.trail.length; i++) g.trail[i].x -= v * dt;
+
+      /* the ceiling is a wall you slide along, the floor is the end */
+      if (g.y < R) { g.y = R; g.vy = 0; }
+      if (g.y > H - R) { g.y = H - R; return die(); }
+      if (hitGate()) return die();
+    }
+
+    /* circle against the two bars: forgiving, and forgiving is correct here
+       because the flyer is drawn as a glyph rather than a solid disc */
+    function hitGate() {
+      for (var i = 0; i < g.gates.length; i++) {
+        var q = g.gates[i];
+        if (PX + R < q.x || PX - R > q.x + BARW) continue;
+        var nx = Math.max(q.x, Math.min(PX, q.x + BARW));
+        if (near(nx, Math.max(0, Math.min(g.y, q.top)))) return true;
+        if (near(nx, Math.max(q.top + q.gap, Math.min(g.y, H)))) return true;
+      }
+      return false;
+    }
+    function near(x, y) {
+      var dx = PX - x, dy = g.y - y;
+      return dx * dx + dy * dy < R * R * 0.72;          /* a shade inside the glyph */
+    }
+
+    function score() {
+      scoreEl.textContent = 'Score ' + g.score + ' \u00b7 Best ' + Math.max(best, g.score);
+    }
+
+    function draw() {
+      var t = paintTokens();
+      ctx.fillStyle = t.ground; ctx.fillRect(0, 0, W, H);
+
+      /* the landscape: the mark, vast and nearly gone */
+      ctx.globalAlpha = 0.055;
+      for (var i = 0; i < g.sky.length; i++) {
+        var s = g.sky[i];
+        drawMark(ctx, s.x, s.y, s.r, t.text, 0, 40);
+      }
+      ctx.globalAlpha = 1;
+
+      /* the gates */
+      for (i = 0; i < g.gates.length; i++) {
+        var q = g.gates[i];
+        ctx.fillStyle = t.bright;
+        bar(q.x, -30, BARW, q.top + 30);
+        bar(q.x, q.top + q.gap, BARW, H - q.top - q.gap + 30);
+        /* the gap's own rims, so the opening reads before the bars do */
+        ctx.fillStyle = t.mark;
+        bar(q.x, q.top - 4, BARW, 4);
+        bar(q.x, q.top + q.gap, BARW, 4);
+        /* and the mark you are aiming through, which fades out as the gate
+           arrives: a sight at distance, out of the way once you are in it */
+        ctx.globalAlpha = 0.15 * Math.max(0, Math.min(1, (q.x - PX) / 190));
+        drawMark(ctx, q.x + BARW / 2, q.top + q.gap / 2, Math.min(26, q.gap * 0.3), t.mark, 0, 40);
+        ctx.globalAlpha = 1;
+      }
+
+      /* the trail it leaves */
+      if (g.trail.length > 2) {
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        for (i = 1; i < g.trail.length; i++) {
+          var k = i / g.trail.length;
+          ctx.globalAlpha = k * k * 0.5;
+          ctx.strokeStyle = t.mark;
+          ctx.lineWidth = 0.8 + k * 3.2;
+          ctx.beginPath();
+          ctx.moveTo(g.trail[i - 1].x, g.trail[i - 1].y);
+          ctx.lineTo(g.trail[i].x, g.trail[i].y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      /* the flyer: the mark, tilted by what it is doing */
+      var tilt = Math.max(-0.32, Math.min(0.62, g.vy / 780));
+      ctx.save();
+      ctx.shadowColor = t.mark; ctx.shadowBlur = 11 * theme.glow;
+      ctx.globalAlpha = g.dead ? Math.max(0, 1 - g.dead * 2.4) : 1;
+      drawMark(ctx, PX, g.y, R, t.mark, tilt, 54);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = t.dim; ctx.font = 'bold 44px ' + t.font; ctx.textAlign = 'center';
+      ctx.fillText(String(g.score), W / 2, 62);
+    }
+
+    function bar(x, y, w, h) {
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, h, 7); else ctx.rect(x, y, w, h);
+      ctx.fill();
+    }
+
+    function frame(now) {
+      if (state !== 'running' && state !== 'dying') { raf = null; return; }
+      var dt = Math.min(0.1, (now - (last || now)) / 1000);
+      last = now;
+      acc += dt;
+      var budget = 30;
+      while (acc >= STEP && budget-- > 0) {
+        acc -= STEP;
+        if (state === 'running') step(STEP);
+        else { g.dead += STEP; if (g.dead > 0.42) { finish(); break; } }
+        if (state === 'idle') break;
+      }
+      if (acc > STEP) acc = 0;
+      draw();
+      raf = (state === 'running' || state === 'dying') ? requestAnimationFrame(frame) : null;
+    }
+
+    function die() { if (state === 'running') { state = 'dying'; g.dead = 0; } }
+
+    /* a run counts the moment it stops, however it stopped: walking away
+       from a good run should not quietly throw the best away */
+    function bank() {
+      state = 'idle';
+      if (raf) cancelAnimationFrame(raf); raf = null;
+      if (live === api) live = null;
+      cv.classList.remove('playing');
+      var beat = g && g.score > best;
+      if (beat) { best = g.score; save(best); }
+      score();
+      over.hidden = false;
+      return beat;
+    }
+
+    function finish() {
+      var beat = bank();
+      result.textContent = beat ? 'New best, ' + g.score : (g.score ? g.score + ' through' : 'No gates');
+      startBtn.textContent = 'Play again';
+      draw();
+    }
+
+    function start() {
+      g = fresh(); score();
+      state = 'running'; claim(api);
+      over.hidden = true; result.textContent = '';
+      cv.classList.add('playing');
+      last = 0; acc = 0;
+      addGate(430);            /* close enough to be a runway, not a wait */
+      if (raf === null) raf = requestAnimationFrame(frame);
+    }
+
+    var api = {
+      pause: function () {
+        if (state !== 'running' && state !== 'dying') return;
+        var beat = bank();
+        result.textContent = beat ? 'Paused, new best ' + g.score
+                                  : (g.score ? 'Paused at ' + g.score : 'Paused');
+        startBtn.textContent = 'Start game';
+      }
+    };
+
+    startBtn.addEventListener('click', function () { start(); });
+    cv.addEventListener('pointerdown', function (e) { e.preventDefault(); flap(); });
+
+    /* Space only while this panel is the visible one, so it goes straight
+       back to the page the moment you switch tabs. */
+    var LIFT = { ' ': 1, Spacebar: 1, ArrowUp: 1, w: 1, W: 1 };
+    window.addEventListener('keydown', function (e) {
+      if (stagePanel().hidden || e.repeat || !LIFT[e.key]) return;
+      if (state !== 'running' && state !== 'idle') return;
+      e.preventDefault();
+      flap();
+    });
+    function stagePanel() { return document.getElementById('panel-lift'); }
+
+    repaint.push(function () { if (g) draw(); });
+    /* the still board behind the start button is a real frame of the game,
+       gate and all, so it reads as something to play rather than a blank */
+    g = fresh(); addGate(430); score(); draw();
   })();
 
   /* ---- Time it ----
