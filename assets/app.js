@@ -61,7 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var BUILD = '20260916d';
+var BUILD = '20260916e';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
@@ -346,15 +346,32 @@ var rafId = null, lastTick = 0;
    took. A stall becomes a small even slowdown instead of a leap, and the
    draw finishes a fraction of a second later than it otherwise would. The
    stretch is capped in total, so a struggling machine cannot drag the hold
-   out indefinitely; past that the old behaviour returns and it catches up. */
-var STEP_CAP = 34, STRETCH_CAP = 500, stretched = 0;
+   out indefinitely; past that the old behaviour returns and it catches up.
+
+   The cap is two frames of whatever this screen is actually doing, measured
+   rather than assumed. A fixed 34ms was right only for a 60Hz display: on a
+   screen capped at 30, which is what a battery saver or Low Power Mode does,
+   every ordinary 33.3ms frame sits on the wrong side of it and the whole
+   draw would crawl. One dropped frame is allowed through at any refresh
+   rate; only a real stall gets held back. */
+var STRETCH_CAP = 500, stretched = 0, beats = [], tickMs = 16.667;
 
 function frame(now) {
   var ms = now - (lastTick || now);
   lastTick = now;
-  if (ms > STEP_CAP && stretched < STRETCH_CAP) {
-    stretched += Math.min(ms - STEP_CAP, STRETCH_CAP - stretched);
-    ms = STEP_CAP;
+
+  if (ms > 4 && ms < 200) {
+    beats.push(ms); if (beats.length > 40) beats.shift();
+    if (beats.length >= 12) {
+      var sorted = beats.slice().sort(function (a, b) { return a - b; });
+      tickMs = sorted[Math.floor(sorted.length * 0.15)];   /* robust minimum */
+    }
+  }
+  var cap = tickMs * 2.2;
+
+  if (ms > cap && stretched < STRETCH_CAP) {
+    stretched += Math.min(ms - cap, STRETCH_CAP - stretched);
+    ms = cap;
   } else if (ms > 64) {
     ms = 64;
   }
@@ -392,7 +409,7 @@ function startIntro() {
   if (heroCue) heroCue.classList.add('gone');
   hold(true);
   window.addEventListener('touchmove', swallow, { passive: false });
-  elapsed = 0; lit = false; lastTick = 0; stretched = 0;
+  elapsed = 0; lit = false; lastTick = 0; stretched = 0; beats.length = 0;
   if (rafId === null) rafId = requestAnimationFrame(frame);
 }
 
@@ -713,12 +730,30 @@ reduceMQ.addEventListener('change', function (e) {
     return b;
   }
 
+  /* What the display is actually doing, taken as the fastest cadence it
+     sustains rather than an assumed 60Hz. A browser in a battery saver, a
+     Mac in Low Power Mode and a 30Hz external display all cap this, and
+     against a 60Hz yardstick a perfectly smooth 30Hz reads as every single
+     frame missing its budget, which is nonsense and sent me looking in the
+     wrong place. */
+  function refresh(a) {
+    if (a.length < 12) return 16.667;
+    var s = a.slice().sort(function (x, y) { return x - y; });
+    var fast = s[Math.floor(s.length * 0.1)];          /* robust minimum */
+    var hz = [8.333, 11.111, 16.667, 20, 33.333, 41.667], best = 16.667, d = 1e9, i;
+    for (i = 0; i < hz.length; i++) {
+      var g = Math.abs(fast - hz[i]);
+      if (g < d) { d = g; best = hz[i]; }
+    }
+    return d < 4 ? best : fast;
+  }
+
   function stats(a) {
     var s = a.slice().sort(function (x, y) { return x - y; });
-    var missed = 0, i;
-    for (i = 0; i < a.length; i++) if (a[i] > 20) missed++;
-    return { p50: s[s.length >> 1], worst: s[s.length - 1],
-             missed: 100 * missed / a.length, n: a.length };
+    var tick = refresh(a), late = 0, i;
+    for (i = 0; i < a.length; i++) if (a[i] > tick * 1.5) late++;
+    return { p50: s[s.length >> 1], worst: s[s.length - 1], tick: tick,
+             missed: 100 * late / a.length, n: a.length };
   }
 
   function show() {
@@ -729,11 +764,16 @@ reduceMQ.addEventListener('change', function (e) {
             '  (' + Math.round(innerWidth * dpr) + 'x' + Math.round(innerHeight * dpr) + ' real)\n';
 
     if (frozen) {
-      t += '\nTHE INTRO, ON THIS MACHINE\n' +
+      var cap = (1000 / frozen.tick).toFixed(0);
+      t += '\nthis screen runs at ' + cap + 'fps\n' +
+           '\nTHE INTRO, ON THIS MACHINE\n' +
            '  frames    ' + frozen.n + '\n' +
            '  typical   ' + frozen.p50.toFixed(1) + 'ms  (' + (1000 / frozen.p50).toFixed(0) + 'fps)\n' +
            '  worst     ' + frozen.worst.toFixed(1) + 'ms\n' +
-           '  missed    ' + frozen.missed.toFixed(0) + '% of frames\n' +
+           '  stalls    ' + frozen.missed.toFixed(0) + '% of frames\n' +
+           (cap < 50 ? '\nNOTE: the screen itself is capped at ' + cap + 'fps.\n' +
+                       'Check Low Power Mode, a battery saver,\n' +
+                       'or an external display refresh rate.\n' : '') +
            '\nscreenshot this\n';
     } else if (run) {
       t += '\nplaying the intro...  ' + run.length + ' frames\n';
@@ -743,8 +783,8 @@ reduceMQ.addEventListener('change', function (e) {
 
     if (live.length > 20) {
       var s = stats(live);
-      t += '\nright now   ' + (1000 / s.p50).toFixed(0) + 'fps, ' +
-           s.missed.toFixed(0) + '% missed';
+      t += '\nright now   ' + (1000 / s.p50).toFixed(0) + 'fps of a possible ' +
+           (1000 / s.tick).toFixed(0) + ', ' + s.missed.toFixed(0) + '% stalling';
     }
     box.textContent = t;
   }
