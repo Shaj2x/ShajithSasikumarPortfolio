@@ -61,7 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var BUILD = '20260916f';
+var BUILD = '20260916g';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
