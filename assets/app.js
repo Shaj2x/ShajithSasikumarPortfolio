@@ -61,7 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var BUILD = '20260916h';
+var BUILD = '20260916i';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
@@ -180,7 +180,7 @@ function pointAt(i, drawn) {
 }
 
 var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1, lastHeadR = -1;
-var headSpeed = 0, HEAD_R = 30, CORE_R = 6.5, lastGlow = '';
+var headSpeed = 0, HEAD_R = 44, CORE_R = 6.5, lastGlow = '';
 
 /* The travel between the two strokes, as a cubic that leaves along the
    direction the first stroke was going and arrives along the direction the

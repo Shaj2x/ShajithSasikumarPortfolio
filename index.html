@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=20260916h">
+<link rel="stylesheet" href="assets/style.css?v=20260916i">
 </head>
 
 <body>
@@ -121,8 +121,32 @@
     <!-- the mark draws itself across the whole scroll -->
     <div class="mark-wrap" aria-hidden="true">
       <div class="mark-halo" id="mark-halo"></div>
-      <svg class="hero-mark" xmlns="http://www.w3.org/2000/svg" viewBox="292 256 426 496" fill="none" stroke="currentColor" stroke-width="15.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="mk mk1" d="M653.21 274.55 C617.32 273.38 581.49 274.53 545.61 274.18 C527.58 274.01 509.55 273.45 491.55 274.55 C473.72 275.64 455.92 278.34 439.22 284.51 C422.36 290.74 406.62 300.50 393.90 313.37 C381.29 326.13 371.64 341.95 367.87 359.25 C364.10 376.54 366.20 395.32 372.61 411.99 C379.02 428.66 389.74 443.22 401.84 456.40 C414.05 469.70 427.66 481.58 442.08 492.37 C456.36 503.06 471.43 512.67 485.99 523.02 C493.33 528.25 500.55 533.66 506.99 540.01 C513.31 546.24 518.88 553.38 521.76 561.69 C524.70 570.17 524.84 579.87 521.68 588.26 C518.57 596.49 512.29 603.45 504.60 607.73 C496.77 612.09 487.49 613.65 478.43 613.45 C469.37 613.25 460.54 611.29 451.93 608.68 C434.86 603.52 418.65 595.85 402.79 587.61 C371.08 571.12 340.75 552.34 311.07 532.40"/><path class="mk mk2" d="M699.43 439.81 C667.86 420.55 635.12 403.59 600.12 391.64 C582.55 385.64 564.41 380.90 545.81 382.04 C536.60 382.60 527.27 384.61 519.46 389.35 C511.64 394.09 505.34 401.55 502.53 410.21 C499.66 419.02 500.42 429.08 504.23 437.51 C507.98 445.80 514.68 452.53 521.86 458.38 C536.21 470.07 552.46 478.21 568.44 487.25 C600.39 505.35 631.24 527.07 652.94 556.60 C663.88 571.49 672.50 588.38 676.30 606.51 C680.06 624.48 679.10 643.68 672.94 660.91 C666.78 678.13 655.43 693.37 641.11 704.80 C626.78 716.24 609.50 723.87 591.73 728.44 C582.68 730.77 573.51 732.31 564.23 733.07 C555.12 733.82 545.91 733.81 536.72 733.84 C518.33 733.90 500.01 734.08 481.67 734.17 C445.00 734.36 408.26 734.19 371.61 734.26"/></svg>
+      <svg class="hero-mark" xmlns="http://www.w3.org/2000/svg" viewBox="292 256 426 496" fill="none" stroke="currentColor" stroke-width="15.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><!-- The glow. Two clones of each stroke, wider and fainter, drawn under
+           the real one. A use element is live linked to what it points at, so
+           the dash offset the animation writes to the path reaches these for
+           free and they can never fall out of step with it.
+           This replaces a drop-shadow, which had to re-blur the whole path on
+           every frame because the geometry changed on every frame: 1367ms of
+           rasterising across a 2300ms draw, against 368ms without it. Strokes
+           are close to free; a blur that cannot be cached is not. -->
+        <use class="mk-glow g1" href="#mk-1"/><use class="mk-glow g1" href="#mk-2"/>
+        <use class="mk-glow g2" href="#mk-1"/><use class="mk-glow g2" href="#mk-2"/>
+        <use class="mk-glow g3" href="#mk-1"/><use class="mk-glow g3" href="#mk-2"/>
+        <use class="mk-glow g4" href="#mk-1"/><use class="mk-glow g4" href="#mk-2"/>
+        <use class="mk-glow g5" href="#mk-1"/><use class="mk-glow g5" href="#mk-2"/>
+        <use class="mk-glow g6" href="#mk-1"/><use class="mk-glow g6" href="#mk-2"/>
+        <path id="mk-1" class="mk mk1" d="M653.21 274.55 C617.32 273.38 581.49 274.53 545.61 274.18 C527.58 274.01 509.55 273.45 491.55 274.55 C473.72 275.64 455.92 278.34 439.22 284.51 C422.36 290.74 406.62 300.50 393.90 313.37 C381.29 326.13 371.64 341.95 367.87 359.25 C364.10 376.54 366.20 395.32 372.61 411.99 C379.02 428.66 389.74 443.22 401.84 456.40 C414.05 469.70 427.66 481.58 442.08 492.37 C456.36 503.06 471.43 512.67 485.99 523.02 C493.33 528.25 500.55 533.66 506.99 540.01 C513.31 546.24 518.88 553.38 521.76 561.69 C524.70 570.17 524.84 579.87 521.68 588.26 C518.57 596.49 512.29 603.45 504.60 607.73 C496.77 612.09 487.49 613.65 478.43 613.45 C469.37 613.25 460.54 611.29 451.93 608.68 C434.86 603.52 418.65 595.85 402.79 587.61 C371.08 571.12 340.75 552.34 311.07 532.40"/><path id="mk-2" class="mk mk2" d="M699.43 439.81 C667.86 420.55 635.12 403.59 600.12 391.64 C582.55 385.64 564.41 380.90 545.81 382.04 C536.60 382.60 527.27 384.61 519.46 389.35 C511.64 394.09 505.34 401.55 502.53 410.21 C499.66 419.02 500.42 429.08 504.23 437.51 C507.98 445.80 514.68 452.53 521.86 458.38 C536.21 470.07 552.46 478.21 568.44 487.25 C600.39 505.35 631.24 527.07 652.94 556.60 C663.88 571.49 672.50 588.38 676.30 606.51 C680.06 624.48 679.10 643.68 672.94 660.91 C666.78 678.13 655.43 693.37 641.11 704.80 C626.78 716.24 609.50 723.87 591.73 728.44 C582.68 730.77 573.51 732.31 564.23 733.07 C555.12 733.82 545.91 733.81 536.72 733.84 C518.33 733.90 500.01 734.08 481.67 734.17 C445.00 734.36 408.26 734.19 371.61 734.26"/></svg>
       <svg class="head-layer" viewBox="292 256 426 496" aria-hidden="true">
+        <!-- The nib's bloom is a radial gradient, not a blurred disc. A blur
+             on a circle whose position and radius change every frame has to be
+             re-rasterised every frame; a gradient fill is just a fill. -->
+        <defs><radialGradient id="nib-bloom">
+          <stop offset="0%"   stop-color="rgb(var(--accent-rgb))" stop-opacity="0.80"/>
+          <stop offset="20%"  stop-color="rgb(var(--accent-rgb))" stop-opacity="0.62"/>
+          <stop offset="44%"  stop-color="rgb(var(--accent-rgb))" stop-opacity="0.26"/>
+          <stop offset="72%"  stop-color="rgb(var(--accent-rgb))" stop-opacity="0.08"/>
+          <stop offset="100%" stop-color="rgb(var(--accent-rgb))" stop-opacity="0"/>
+        </radialGradient></defs>
         <circle class="head" id="head" r="24" cx="-100" cy="-100"/>
         <circle class="head-core" id="head-core" r="6.5" cx="-100" cy="-100"/>
       </svg>
@@ -517,6 +541,6 @@
   </div>
 </footer>
 
-<script src="assets/app.js?v=20260916h"></script>
+<script src="assets/app.js?v=20260916i"></script>
 </body>
 </html>

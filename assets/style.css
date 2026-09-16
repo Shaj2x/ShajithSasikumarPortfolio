@@ -614,7 +614,35 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
    drop-shadow, which at this radius costs nothing measurable. The wide
    ambient bloom is a static radial gradient behind the mark that only ever
    changes opacity, so the compositor fades it and nothing re-rasterises. */
-.hero-mark .mk{filter:drop-shadow(0 0 15px rgba(var(--accent-rgb),calc(.7 * var(--glow))))}
+/* The mark's glow, without a filter.
+
+   This used to be drop-shadow(0 0 15px). A drop-shadow on a path whose
+   geometry changes every frame cannot be cached: the browser re-rasterises
+   and re-blurs the whole stroke every time the dash offset moves. Traced
+   across the 2300ms draw that was 1367ms of raster work, against 368ms with
+   it removed - more than everything else on the page put together. It never
+   showed up in frame timings because rasterising happens off the main
+   thread; it shows up on a real machine as dropped frames.
+
+   Two wider, fainter copies of each stroke underneath give the same bloom
+   for the price of two more strokes, which is close to nothing. They are
+   use elements pointing at the real paths, so the dash offset written by
+   the animation reaches them automatically and they cannot drift out of
+   step with the line they are lighting.
+
+   Six layers, not two. Two was cheap and looked it: a gaussian has a long
+   soft tail and two steps approximate it as a pair of hard rings around the
+   letter, which reads as an outline rather than a glow. Six, with the widths
+   close together and the outermost nearly transparent, give a falloff the
+   eye cannot pick apart. Strokes are cheap enough that the extra four cost
+   nothing measurable next to the blur they replace. */
+.mk-glow{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.mk-glow.g1{stroke:rgba(var(--accent-rgb),calc(.028 * var(--glow)));stroke-width:62}
+.mk-glow.g2{stroke:rgba(var(--accent-rgb),calc(.034 * var(--glow)));stroke-width:51}
+.mk-glow.g3{stroke:rgba(var(--accent-rgb),calc(.042 * var(--glow)));stroke-width:42}
+.mk-glow.g4{stroke:rgba(var(--accent-rgb),calc(.052 * var(--glow)));stroke-width:34}
+.mk-glow.g5{stroke:rgba(var(--accent-rgb),calc(.064 * var(--glow)));stroke-width:27}
+.mk-glow.g6{stroke:rgba(var(--accent-rgb),calc(.080 * var(--glow)));stroke-width:21}
 .mark-halo{position:absolute;inset:-22%;pointer-events:none;opacity:0;
   will-change:opacity;
   background:radial-gradient(ellipse 52% 46% at 50% 50%,
@@ -622,13 +650,16 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
     rgba(var(--accent-rgb),calc(.09 * var(--glow))) 38%,rgba(var(--accent-rgb),0) 70%)}
 
 /* the drawing head: the light doing the writing */
-.head{fill:rgba(var(--accent-rgb),calc(.42 * var(--glow) + .12));filter:blur(10px)}
-/* the .head disc above is already a blurred bloom, so the core only needs
-   the tight highlight: a second 48px shadow here was re-blurring the nib
-   every frame for light the disc was providing anyway */
+/* The nib. Both of these were filters - a 10px blur on the disc and a 15px
+   drop-shadow on the core - and both had to be re-rasterised on every frame
+   because the circles move and resize on every frame. A radial gradient fill
+   is the same bloom with none of that: it is a fill, and fills are cheap.
+   The core keeps a ring of its own instead of a shadow. */
+.head{fill:url(#nib-bloom)}
 .head-core{fill:rgb(var(--ink-rgb));
-  filter:drop-shadow(0 0 15px rgba(var(--accent-rgb),var(--glow)))}
-.head,.head-core{opacity:var(--head,0)}
+  stroke:rgba(var(--accent-rgb),calc(.5 * var(--glow)));stroke-width:5}
+.head{opacity:calc((.42 * var(--glow) + .34) * var(--head,0))}
+.head-core{opacity:var(--head,0)}
 /* Only once the draw is finished. Transitioning opacity during the draw
    would smear the dimming that marks the pen lift. */
 .mark-wrap.drawn .head,.mark-wrap.drawn .head-core{
