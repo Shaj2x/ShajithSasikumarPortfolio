@@ -332,10 +332,34 @@ var introHolds = false;
 var elapsed = 0, lit = false;
 var rafId = null, lastTick = 0;
 
+/* A dropped frame is not this animation's fault. Turning it into a jump is.
+
+   Advancing the draw by the full wall clock means a 67ms stall on the
+   viewer's machine moves the line four frames' worth of distance in one
+   step, and that leap is precisely what reads as a hitch: the frame rate
+   was already lost, but the amplifying was ours. Measured on the machine
+   this is watched on, the median frame is a clean 16.7ms and the worst is
+   66.7ms, so the problem there is not how much work a frame costs, it is
+   the handful that stall.
+
+   So a frame advances by at most two frames' worth however long it really
+   took. A stall becomes a small even slowdown instead of a leap, and the
+   draw finishes a fraction of a second later than it otherwise would. The
+   stretch is capped in total, so a struggling machine cannot drag the hold
+   out indefinitely; past that the old behaviour returns and it catches up. */
+var STEP_CAP = 34, STRETCH_CAP = 500, stretched = 0;
+
 function frame(now) {
-  var dt = Math.min(64, now - (lastTick || now)) / 1000;
+  var ms = now - (lastTick || now);
   lastTick = now;
-  elapsed += dt * 1000;
+  if (ms > STEP_CAP && stretched < STRETCH_CAP) {
+    stretched += Math.min(ms - STEP_CAP, STRETCH_CAP - stretched);
+    ms = STEP_CAP;
+  } else if (ms > 64) {
+    ms = 64;
+  }
+  var dt = ms / 1000;
+  elapsed += ms;
 
   var raw = clamp(elapsed / DRAW_MS, 0, 1);
   var head = drawMark(raw, dt);
@@ -368,7 +392,7 @@ function startIntro() {
   if (heroCue) heroCue.classList.add('gone');
   hold(true);
   window.addEventListener('touchmove', swallow, { passive: false });
-  elapsed = 0; lit = false; lastTick = 0;
+  elapsed = 0; lit = false; lastTick = 0; stretched = 0;
   if (rafId === null) rafId = requestAnimationFrame(frame);
 }
 
