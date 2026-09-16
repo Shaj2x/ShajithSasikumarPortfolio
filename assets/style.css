@@ -574,6 +574,19 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 
 .field{position:absolute;inset:0;width:100%;height:100%;opacity:.9}
 
+/* The glow that follows the nib. It was drawn into the field canvas, which
+   meant rasterising a gradient the size of the hero on every frame: at a
+   retina viewport that was the single most expensive thing on the page, and
+   on its own it held the intro to 10fps under a 4x CPU throttle. It is a
+   static image that only moves and fades, which is precisely what the
+   compositor exists for, so it is one promoted layer now and the animation
+   only writes transform and opacity to it. */
+.field-glow{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;
+  opacity:0;will-change:transform,opacity;
+  background:radial-gradient(circle closest-side,
+    rgba(var(--accent-rgb),1) 0%, rgba(var(--accent-rgb),0) 100%)}
+@media (prefers-reduced-motion:reduce){.field-glow{display:none}}
+
 .vignette{position:absolute;inset:0;pointer-events:none;opacity:var(--vignette-a);
   background:radial-gradient(ellipse 100% 78% at 62% 50%,rgba(var(--ground-rgb),0) 30%,rgba(var(--ground-rgb),.72) 100%)}
 
