@@ -61,7 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var BUILD = '20260916g';
+var BUILD = '20260916h';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
@@ -354,7 +354,7 @@ var rafId = null, lastTick = 0;
    every ordinary 33.3ms frame sits on the wrong side of it and the whole
    draw would crawl. One dropped frame is allowed through at any refresh
    rate; only a real stall gets held back. */
-var STRETCH_CAP = 500, stretched = 0, beats = [], tickMs = 16.667;
+var STRETCH_CAP = 500, stretched = 0, beats = [], tickMs = 16.667, smoothMs = 0;
 
 function frame(now) {
   var ms = now - (lastTick || now);
@@ -375,8 +375,24 @@ function frame(now) {
   } else if (ms > 64) {
     ms = 64;
   }
-  var dt = ms / 1000;
-  elapsed += ms;
+
+  /* And then the draw runs on a smoothed clock rather than the raw one.
+
+     Clamping a long frame stops it becoming a four frame leap, but it still
+     takes the whole of what is left in a single step, and on the machine this
+     is watched on that step is the thing you see: the frame rate there is a
+     clean 60 with a perfect median, and only six frames in a hundred arrive
+     late. Six in a hundred is enough to read as jerking when every one of
+     them moves the line twice as far as its neighbours did.
+
+     A one pole filter spreads that catch-up over the following frames instead
+     of spending it on one. The filter preserves the mean, so the draw still
+     tracks the wall clock and still finishes when it should; what it loses is
+     the jitter. On a machine that is not dropping anything the smoothed
+     interval sits on the real one and this does nothing at all. */
+  smoothMs = smoothMs ? smoothMs + (ms - smoothMs) * 0.16 : ms;
+  var dt = smoothMs / 1000;
+  elapsed += smoothMs;
 
   var raw = clamp(elapsed / DRAW_MS, 0, 1);
   var head = drawMark(raw, dt);
@@ -409,7 +425,7 @@ function startIntro() {
   if (heroCue) heroCue.classList.add('gone');
   hold(true);
   window.addEventListener('touchmove', swallow, { passive: false });
-  elapsed = 0; lit = false; lastTick = 0; stretched = 0; beats.length = 0;
+  elapsed = 0; lit = false; lastTick = 0; stretched = 0; beats.length = 0; smoothMs = 0;
   if (rafId === null) rafId = requestAnimationFrame(frame);
 }
 
