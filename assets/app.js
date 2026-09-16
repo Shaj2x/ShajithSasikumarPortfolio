@@ -61,7 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var BUILD = '2026-09-16a';
+var BUILD = '20260916c';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
@@ -660,70 +660,116 @@ reduceMQ.addEventListener('change', function (e) {
   });
 })();
 
-/* ---------- ?fps: a readout of what this machine actually did ----------
-   Off unless the URL asks for it, so no visitor ever sees it. It exists
-   because I cannot measure the machine the site is being watched on, and
-   three rounds of guessing at that is two too many. It also prints the build
-   it is running, which is the fastest way to catch a stale cached script.
+/* ---------- the fps readout: what this machine actually did ----------
+   Three rounds of this went the same way: I measure on my own machine,
+   report a number, and it still stutters on the machine it is watched on.
+   This reports from there instead.
 
-   Open the site with ?fps on the end of the URL. */
+   Two ways in, because the first one did not survive contact with reality:
+   ?fps or #fps on the URL, or just type the letters f p s anywhere on the
+   page that is not a form field. A query string does not always reach the
+   page it is addressed to; a keypress always does.
+
+   Off until asked for, so no visitor sees it. All it costs when off is one
+   keydown listener. */
 (function fpsProbe() {
-  if (!/[?&#]fps\b/.test(location.search + location.hash)) return;
+  var box = null, live = [], run = null, frozen = null, last = 0, on = false;
 
-  var box = document.createElement('div');
-  box.id = 'fps-probe';
-  box.setAttribute('aria-hidden', 'true');
-  box.style.cssText =
-    'position:fixed;left:12px;bottom:12px;z-index:9999;pointer-events:none;' +
-    'font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;' +
-    'padding:10px 13px;border-radius:9px;color:#EEF2F6;' +
-    'background:rgba(8,10,13,.86);border:1px solid rgba(255,255,255,.16);' +
-    'box-shadow:0 8px 28px rgba(0,0,0,.45)';
-  (document.body || document.documentElement).appendChild(box);
-
-  var dts = [], watching = false, frozen = false, t0 = 0;
-  var head = 'build ' + BUILD + '\n' +
-             Math.round(innerWidth) + 'x' + Math.round(innerHeight) +
-             ' at ' + (window.devicePixelRatio || 1) + 'x  (' +
-             Math.round(innerWidth * (window.devicePixelRatio || 1)) + 'x' +
-             Math.round(innerHeight * (window.devicePixelRatio || 1)) + ' real)\n';
-
-  function report(live) {
-    if (!dts.length) { box.textContent = head + 'scroll once to play the intro'; return; }
-    var s = dts.slice().sort(function (a, b) { return a - b; });
-    var p50 = s[s.length >> 1], worst = s[s.length - 1];
-    var missed = 0, i;
-    for (i = 0; i < dts.length; i++) if (dts[i] > 20) missed++;
-    box.textContent = head +
-      (live ? 'playing\n' : 'intro finished\n') +
-      'frames      ' + dts.length + '\n' +
-      'typical     ' + p50.toFixed(1) + 'ms  (' + (1000 / p50).toFixed(0) + 'fps)\n' +
-      'worst       ' + worst.toFixed(1) + 'ms\n' +
-      'missed      ' + (100 * missed / dts.length).toFixed(0) + '% of frames' +
-      (live ? '' : '\n\nscreenshot this');
+  function panel() {
+    var b = document.createElement('div');
+    b.id = 'fps-probe';
+    b.setAttribute('aria-hidden', 'true');
+    b.style.cssText =
+      'position:fixed;left:12px;bottom:12px;z-index:2147483647;pointer-events:none;' +
+      'font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;' +
+      'padding:11px 14px;border-radius:10px;color:#EEF2F6;' +
+      'background:rgba(8,10,13,.9);border:1px solid rgba(255,255,255,.18);' +
+      'box-shadow:0 10px 34px rgba(0,0,0,.5)';
+    (document.body || document.documentElement).appendChild(b);
+    return b;
   }
 
-  var last = 0;
+  function stats(a) {
+    var s = a.slice().sort(function (x, y) { return x - y; });
+    var missed = 0, i;
+    for (i = 0; i < a.length; i++) if (a[i] > 20) missed++;
+    return { p50: s[s.length >> 1], worst: s[s.length - 1],
+             missed: 100 * missed / a.length, n: a.length };
+  }
+
+  function show() {
+    if (!box) return;
+    var dpr = window.devicePixelRatio || 1;
+    var t = 'build ' + BUILD + '\n' +
+            Math.round(innerWidth) + 'x' + Math.round(innerHeight) + ' at ' + dpr + 'x' +
+            '  (' + Math.round(innerWidth * dpr) + 'x' + Math.round(innerHeight * dpr) + ' real)\n';
+
+    if (frozen) {
+      t += '\nTHE INTRO, ON THIS MACHINE\n' +
+           '  frames    ' + frozen.n + '\n' +
+           '  typical   ' + frozen.p50.toFixed(1) + 'ms  (' + (1000 / frozen.p50).toFixed(0) + 'fps)\n' +
+           '  worst     ' + frozen.worst.toFixed(1) + 'ms\n' +
+           '  missed    ' + frozen.missed.toFixed(0) + '% of frames\n' +
+           '\nscreenshot this\n';
+    } else if (run) {
+      t += '\nplaying the intro...  ' + run.length + ' frames\n';
+    } else if (intro !== 'done') {
+      t += '\nscroll once to play the intro\n';
+    }
+
+    if (live.length > 20) {
+      var s = stats(live);
+      t += '\nright now   ' + (1000 / s.p50).toFixed(0) + 'fps, ' +
+           s.missed.toFixed(0) + '% missed';
+    }
+    box.textContent = t;
+  }
+
+  var wasIntro = 'idle', frames = 0;
   function tick(now) {
-    if (frozen) return;
-    if (watching) { if (last) dts.push(now - last); if (dts.length % 6 === 0) report(true); }
+    if (!on) return;
+    if (last) {
+      var dt = now - last;
+      live.push(dt); if (live.length > 110) live.shift();
+      if (run) run.push(dt);
+    }
     last = now;
-    /* the intro owns the clock; stop a beat after it hands the page back */
-    if (watching && intro === 'done' && now - t0 > 600) { frozen = true; report(false); return; }
+
+    /* catch the intro wherever it is in its life */
+    if (intro === 'playing' && !run && !frozen) { run = []; }
+    if (wasIntro !== 'done' && intro === 'done' && run && run.length > 10) {
+      frozen = stats(run); run = null; show();
+    }
+    wasIntro = intro;
+
+    /* count frames, not the length of a buffer that stops growing: once live
+       was capped the modulo never came back round and the panel sat frozen on
+       whatever it had last printed */
+    if (++frames % 8 === 0) show();
     requestAnimationFrame(tick);
   }
 
-  function begin() {
-    if (watching) return;
-    watching = true; t0 = performance.now(); last = 0; dts.length = 0;
+  function open() {
+    if (on) return;
+    on = true; box = panel(); last = 0; live = [];
+    show(); requestAnimationFrame(tick);
   }
-  ['wheel', 'touchmove', 'keydown', 'pointerdown'].forEach(function (ev) {
-    window.addEventListener(ev, function () { if (intro !== 'done') begin(); },
-                            { passive: true, capture: true });
-  });
+  function close() {
+    on = false;
+    if (box && box.parentNode) box.parentNode.removeChild(box);
+    box = null;
+  }
 
-  report(false);
-  requestAnimationFrame(tick);
+  if (/[?&#]fps\b/.test(location.search + location.hash)) open();
+
+  var typed = '';
+  window.addEventListener('keydown', function (e) {
+    var el = e.target;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+    if (!e.key || e.key.length !== 1) return;
+    typed = (typed + e.key.toLowerCase()).slice(-3);
+    if (typed === 'fps') { typed = ''; if (on) close(); else open(); }
+  }, true);
 })();
 
 /* ---------- page entrances ---------- */
