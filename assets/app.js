@@ -324,6 +324,10 @@ var heroCopy = document.getElementById('hero-copy');
 var heroCue  = document.getElementById('hero-cue');
 
 var intro = 'idle';                 /* idle | playing | done */
+/* True only while the intro is playing. The page is held for those two and a
+   bit seconds and the draw is the whole point of them, so nothing else gets
+   to take frames off it, or the eye off it. */
+var introHolds = false;
 var elapsed = 0, lit = false;
 var rafId = null, lastTick = 0;
 
@@ -359,6 +363,7 @@ function startIntro() {
      an intro they cannot even see. */
   if (window.scrollY > 40) { settleIntro(); return; }
   intro = 'playing';
+  introHolds = true;
   if (heroCue) heroCue.classList.add('gone');
   hold(true);
   window.addEventListener('touchmove', swallow, { passive: false });
@@ -369,6 +374,7 @@ function startIntro() {
 function endIntro() {
   if (intro === 'done') return;
   intro = 'done';
+  introHolds = false;
   hold(false);
   /* arm the transition first, then let the nib go on the next frame, so the
      fade actually animates instead of snapping */
@@ -464,6 +470,9 @@ function onResize() {
 function disarmIntro() {
   if (!armed) return;
   armed = false;
+  /* If the viewport becomes a phone mid play the intro never reaches its own
+     end, and anything waiting on that flag would wait forever. */
+  introHolds = false;
   releaseIntent();
   window.removeEventListener('scroll', onIdleScroll);
   window.removeEventListener('resize', onResize);
@@ -853,11 +862,56 @@ document.addEventListener('visibilitychange', function () {
      which stopped being a hex the moment the themes arrived */
   var rgb = theme.accent;
 
+  /* This canvas used to be the whole viewport, fixed on top of the page, and
+     that was the cost: not the clearing and not the drawing, which measure at
+     nothing, but compositing a full screen translucent layer over everything
+     else on every frame the pointer moved. On a 1710x1107 retina screen it
+     blew the frame budget on a fifth to a quarter of the intro's frames, and
+     it never appeared in a single measurement I took because a parked pointer
+     leaves this module asleep and every test I wrote parked the pointer.
+     Proof it is the compositing: at opacity 0, still drawing every frame, the
+     cost vanishes; at one device pixel per CSS pixel, still visible, it does
+     not move at all.
+
+     So the canvas is only as big as the ribbon now, and it is moved to wherever
+     the ribbon is. Its size is quantised so that it is not reallocated every
+     frame, and page coordinates still work inside it because the offset is
+     folded into the context transform. */
+  var G = 128;                       /* the grid the window snaps to */
+  var box = null;
+
+  function place(b) {
+    var x = Math.max(0, Math.floor(b.x / G) * G);
+    var y = Math.max(0, Math.floor(b.y / G) * G);
+    var w = Math.min(innerWidth  - x, Math.ceil((b.x + b.w - x) / G) * G);
+    var h = Math.min(innerHeight - y, Math.ceil((b.y + b.h - y) / G) * G);
+    w = Math.max(G, w); h = Math.max(G, h);
+    if (!box || box.x !== x || box.y !== y || box.w !== w || box.h !== h) {
+      box = { x: x, y: y, w: w, h: h };
+      cv.style.width  = w + 'px';
+      cv.style.height = h + 'px';
+      cv.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      cv.width  = Math.round(w * dpr);          /* this also blanks the buffer */
+      cv.height = Math.round(h * dpr);
+    }
+    /* page coordinates in, window pixels out */
+    ctx.setTransform(dpr, 0, 0, dpr, -box.x * dpr, -box.y * dpr);
+    cv.classList.remove('rest');
+  }
+
+  /* Dropping the layer is enough to make it invisible, but the buffer keeps
+     whatever was last drawn into it. Clear it too, so "resting" means empty
+     rather than merely hidden. */
+  function hide() {
+    if (box) ctx.clearRect(box.x, box.y, box.w, box.h);
+    cv.classList.add('rest');
+    box = null;
+  }
+
   function size() {
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    cv.width  = Math.round(innerWidth  * dpr);
-    cv.height = Math.round(innerHeight * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    box = null;                        /* remeasure against the new viewport */
+    hide();
   }
 
   /* Catmull-Rom through the recorded samples. Raw pointer events arrive at
@@ -897,10 +951,9 @@ document.addEventListener('visibilitychange', function () {
   }
 
   function draw(now) {
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
     var P = build(now);
     var n = P.length;
-    if (n < 3) return;
+    if (n < 3) { hide(); return; }
 
     /* Width: widest at the nib, to nothing at the tail, and thinner the
        faster it was travelling, the way a real stroke lays down less ink
@@ -913,6 +966,18 @@ document.addEventListener('visibilitychange', function () {
       var cap  = Math.min(1, (n - 1 - i) / 3 * 0.55 + 0.45);
       W[i] = WIDE * Math.pow(age, 0.7) * (0.55 + 0.45 * fast) * cap;
     }
+
+    /* the ribbon's own box, plus its widest half-width and the nib's shadow */
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (i = 0; i < n; i++) {
+      var m = W[i] + 16;
+      if (P[i].x - m < x0) x0 = P[i].x - m;
+      if (P[i].x + m > x1) x1 = P[i].x + m;
+      if (P[i].y - m < y0) y0 = P[i].y - m;
+      if (P[i].y + m > y1) y1 = P[i].y + m;
+    }
+    place({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    ctx.clearRect(box.x, box.y, box.w, box.h);
 
     ctx.beginPath();
     for (i = 0; i < n; i++) {                       /* down one edge */
@@ -975,10 +1040,9 @@ document.addEventListener('visibilitychange', function () {
        cursor. Testing pts.length alone stopped the loop on its very first
        frame, when the history held a single sample and had not had a chance
        to grow. */
-    var live = pts.length > 0 || Math.hypot(mx - lx, my - ly) > 0.5;
+    var live = !introHolds && (pts.length > 0 || Math.hypot(mx - lx, my - ly) > 0.5);
     if (!live) {
-      ctx.clearRect(0, 0, innerWidth, innerHeight);
-      raf = null; last = 0;
+      hide(); raf = null; last = 0;
       return;
     }
     raf = requestAnimationFrame(tick);
@@ -986,6 +1050,9 @@ document.addEventListener('visibilitychange', function () {
 
   function onMove(e) {
     if (e.pointerType && e.pointerType !== 'mouse') return;
+    /* the intro owns the screen while it plays: it is two seconds, the page is
+       held, and a second moving line is both a cost and a distraction */
+    if (introHolds) { mx = e.clientX; my = e.clientY; armed = false; return; }
     /* a live game board owns the pointer, and the ball is the thing to watch */
     if (e.target && e.target.closest && e.target.closest('.game-frame')) return;
     mx = e.clientX; my = e.clientY;
@@ -1001,7 +1068,7 @@ document.addEventListener('visibilitychange', function () {
     document.addEventListener('visibilitychange', function () {
       if (document.hidden && raf !== null) {
         cancelAnimationFrame(raf); raf = null; pts.length = 0;
-        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        hide();
       }
     });
   }
