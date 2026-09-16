@@ -61,6 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
+var BUILD = '2026-09-16a';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
@@ -657,6 +658,72 @@ reduceMQ.addEventListener('change', function (e) {
     if (document.hidden) { if (raf) cancelAnimationFrame(raf); raf = null; }
     else if (raf === null && awake) draw();
   });
+})();
+
+/* ---------- ?fps: a readout of what this machine actually did ----------
+   Off unless the URL asks for it, so no visitor ever sees it. It exists
+   because I cannot measure the machine the site is being watched on, and
+   three rounds of guessing at that is two too many. It also prints the build
+   it is running, which is the fastest way to catch a stale cached script.
+
+   Open the site with ?fps on the end of the URL. */
+(function fpsProbe() {
+  if (!/[?&#]fps\b/.test(location.search + location.hash)) return;
+
+  var box = document.createElement('div');
+  box.id = 'fps-probe';
+  box.setAttribute('aria-hidden', 'true');
+  box.style.cssText =
+    'position:fixed;left:12px;bottom:12px;z-index:9999;pointer-events:none;' +
+    'font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;' +
+    'padding:10px 13px;border-radius:9px;color:#EEF2F6;' +
+    'background:rgba(8,10,13,.86);border:1px solid rgba(255,255,255,.16);' +
+    'box-shadow:0 8px 28px rgba(0,0,0,.45)';
+  (document.body || document.documentElement).appendChild(box);
+
+  var dts = [], watching = false, frozen = false, t0 = 0;
+  var head = 'build ' + BUILD + '\n' +
+             Math.round(innerWidth) + 'x' + Math.round(innerHeight) +
+             ' at ' + (window.devicePixelRatio || 1) + 'x  (' +
+             Math.round(innerWidth * (window.devicePixelRatio || 1)) + 'x' +
+             Math.round(innerHeight * (window.devicePixelRatio || 1)) + ' real)\n';
+
+  function report(live) {
+    if (!dts.length) { box.textContent = head + 'scroll once to play the intro'; return; }
+    var s = dts.slice().sort(function (a, b) { return a - b; });
+    var p50 = s[s.length >> 1], worst = s[s.length - 1];
+    var missed = 0, i;
+    for (i = 0; i < dts.length; i++) if (dts[i] > 20) missed++;
+    box.textContent = head +
+      (live ? 'playing\n' : 'intro finished\n') +
+      'frames      ' + dts.length + '\n' +
+      'typical     ' + p50.toFixed(1) + 'ms  (' + (1000 / p50).toFixed(0) + 'fps)\n' +
+      'worst       ' + worst.toFixed(1) + 'ms\n' +
+      'missed      ' + (100 * missed / dts.length).toFixed(0) + '% of frames' +
+      (live ? '' : '\n\nscreenshot this');
+  }
+
+  var last = 0;
+  function tick(now) {
+    if (frozen) return;
+    if (watching) { if (last) dts.push(now - last); if (dts.length % 6 === 0) report(true); }
+    last = now;
+    /* the intro owns the clock; stop a beat after it hands the page back */
+    if (watching && intro === 'done' && now - t0 > 600) { frozen = true; report(false); return; }
+    requestAnimationFrame(tick);
+  }
+
+  function begin() {
+    if (watching) return;
+    watching = true; t0 = performance.now(); last = 0; dts.length = 0;
+  }
+  ['wheel', 'touchmove', 'keydown', 'pointerdown'].forEach(function (ev) {
+    window.addEventListener(ev, function () { if (intro !== 'done') begin(); },
+                            { passive: true, capture: true });
+  });
+
+  report(false);
+  requestAnimationFrame(tick);
 })();
 
 /* ---------- page entrances ---------- */
