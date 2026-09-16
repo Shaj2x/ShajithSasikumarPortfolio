@@ -72,11 +72,27 @@ var VB = { x: 292, y: 256, w: 426, h: 496 };
    the second stroke begins, instead of teleporting across the mark.
 
    The plan below is measured in units of distance, not in shares of the
-   clock. That is what holds the whole sequence to one speed: a second of
-   time always buys the same amount of travel, so the lift costs exactly as
-   long as its own length warrants and no part of the draw runs faster or
-   slower than any other part. */
-var plan = [];        /* [{kind, at, len, ...}] one pass, in travel order */
+   clock, so that the writing holds one speed throughout: a second of time
+   always buys the same amount of line, and no stroke runs faster or slower
+   than any other.
+
+   The lift is the exception, and it has to be. Stroke one ends at the bottom
+   left of the upper S and stroke two begins at the top right of the lower
+   one: 400 units apart, an arc almost half the length of a stroke. Charged
+   at the writing rate that traverse cost 476ms of a 2300ms animation, a
+   fifth of the whole thing, with nothing being drawn and only a dimmed nib
+   sliding through empty space. That gap sits immediately before the second
+   S, which is exactly where the draw has always been reported to slow down:
+   not a timing fault at all, but a fifth of a second in which the animation
+   has nothing to show.
+
+   So the lift is charged at LIFT_RATE times the writing speed, which is also
+   what a hand does. Pen down is a controlled stroke; pen up is a throw, and
+   in handwriting the in air move runs two to three times the speed of the
+   line it joins. Each segment therefore carries a cost in timeline units as
+   well as a len in geometry units, and only the lift has the two differ. */
+var LIFT_RATE = 3.4;
+var plan = [];        /* [{kind, at, len, cost, ...}] one pass, in travel order */
 var runTotal = 0;
 
 function measureMark() {
@@ -103,15 +119,17 @@ function measureMark() {
   /* Stroke, lift, stroke, laid end to end as one continuous run of travel. */
   plan = []; runTotal = 0;
   for (var k = 0; k < marks.length; k++) {
-    plan.push({ kind: 'draw', i: k, at: runTotal, len: lens[k] });
+    plan.push({ kind: 'draw', i: k, at: runTotal, len: lens[k], cost: lens[k], rate: 1 });
     runTotal += lens[k];
     if (k < marks.length - 1) {
       var from = pointAt(k, lens[k]), to = pointAt(k + 1, 0);
       if (from && to) {
         var curve = liftCurve(from, to, edgeDir(k, lens[k], true), edgeDir(k + 1, 0, false));
         var tbl = liftTable(curve);
-        plan.push({ kind: 'lift', tbl: tbl, at: runTotal, len: tbl.len });
-        runTotal += tbl.len;
+        var cost = tbl.len / LIFT_RATE;
+        plan.push({ kind: 'lift', tbl: tbl, at: runTotal,
+                    len: tbl.len, cost: cost, rate: LIFT_RATE });
+        runTotal += cost;
       }
     }
   }
@@ -161,7 +179,7 @@ function pointAt(i, drawn) {
 }
 
 var lastOff = [], lastHeadX = -1, lastHeadY = -1, lastHeadOp = -1, lastHeadR = -1;
-var headSpeed = 0, HEAD_R = 24, CORE_R = 6.5, lastGlow = '';
+var headSpeed = 0, HEAD_R = 30, CORE_R = 6.5, lastGlow = '';
 
 /* The travel between the two strokes, as a cubic that leaves along the
    direction the first stroke was going and arrives along the direction the
@@ -212,11 +230,15 @@ function drawMark(p, dt) {
 
   for (var s = 0; s < plan.length; s++) {
     var seg = plan[s];
-    var local = clamp(run - seg.at, 0, seg.len);
+    var local = clamp(run - seg.at, 0, seg.cost);   /* timeline units */
 
     if (seg.kind === 'draw') {
       var off = seg.len - local;
-      if (lastOff[seg.i] === undefined || Math.abs(off - lastOff[seg.i]) > 0.1) {
+      /* The delta gate saves a style write per frame, but it must never eat
+         the last one: a stroke left sitting at 0.1 has not finished, and the
+         whole point of the run is that it lands exactly complete. */
+      if (lastOff[seg.i] === undefined || Math.abs(off - lastOff[seg.i]) > 0.1
+          || (off === 0 && lastOff[seg.i] !== 0)) {
         lastOff[seg.i] = off;
         marks[seg.i].style.strokeDashoffset = off.toFixed(2);
       }
@@ -226,14 +248,16 @@ function drawMark(p, dt) {
         var pt = pointAt(seg.i, local);
         if (pt) { hx = pt.x; hy = pt.y; headOp = 1; }
       }
-    } else if (run > seg.at && run < seg.at + seg.len) {
-      /* off the page now, travelling to the next stroke at the speed it was
-         writing at, dimming across the lift rather than stepping */
-      var t = local / seg.len;
-      var lp = liftAt(seg.tbl, local);
+    } else if (run > seg.at && run < seg.at + seg.cost) {
+      /* off the page now and moving quickly, the nib lightening across the
+         travel rather than stepping. It only lightens so far: the nib is the
+         one thing moving while the lift is on, and fading the only moving
+         thing is what made the crossing read as a stall. */
+      var t = local / seg.cost;
+      var lp = liftAt(seg.tbl, local * seg.rate);   /* back to geometry units */
       hx = lp.x; hy = lp.y;
       var fade = smoothstep(t, 0, 0.3) * (1 - smoothstep(t, 0.7, 1));
-      headOp = 1 - 0.72 * fade;
+      headOp = 1 - 0.24 * fade;
     }
   }
 
@@ -259,9 +283,15 @@ function drawMark(p, dt) {
        spreads under speed. One pole smoothed so it never flickers. */
     if (lastHeadX >= 0 && dt > 0) {
       var v = Math.hypot(hx - lastHeadX, hy - lastHeadY) / dt;   /* units per second */
-      headSpeed += (v - headSpeed) * Math.min(1, dt * 9);
+      headSpeed += (v - headSpeed) * Math.min(1, dt * 16);
     }
-    var grow = 1 + clamp(headSpeed / 900, 0, 1) * 0.5;
+    /* Scaled against the lift's speed, not the writing's. Against the old
+       divisor the writing already pinned this at the top of its range, so
+       the nib was one fixed size and the swell did nothing. Now the writing
+       sits low in the range and the lift reaches the top, which is the whole
+       point of it: the crossing has to read as a hand throwing the pen
+       across, and a nib that streaks says that where a dimming dot does not. */
+    var grow = 1 + clamp(headSpeed / 2600, 0, 1) * 0.5;
     var r = HEAD_R * grow;
     if (Math.abs(r - lastHeadR) > 0.2) {
       lastHeadR = r;
