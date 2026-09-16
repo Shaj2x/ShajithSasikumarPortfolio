@@ -656,6 +656,74 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .rule.in::after{--draw:1}
 
 /* ============================================================
+   IDLE LIFE
+   The page should not be dead while it is being read. Three
+   things move when nothing is being done to them, and all
+   three obey the same rule: transform and opacity only, on
+   elements that are already their own layer, so this is
+   compositor work and cannot take a frame from the intro, the
+   games, or a scroll. Nothing here starts before the section
+   it belongs to has been reached.
+   ============================================================ */
+
+/* 1. The hero. Once the intro finishes the mark stops dead and the whole
+      screen goes still. The ambient glow behind it drifts instead, so the
+      hero keeps breathing without the line itself ever moving again. The
+      layer is already promoted and this is opacity alone. Keyframe zero is
+      opacity 1, which is exactly where the intro leaves it, so it picks the
+      value up rather than jumping to it. */
+.mark-wrap.drawn .mark-halo{animation:halo-breathe 11s var(--ease-in-out) infinite}
+@keyframes halo-breathe{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* 2. Every section rule carries a light across itself, a few seconds after it
+      has finished drawing in. The gradient fades to nothing at both ends, so
+      there is nothing to clip: the rule keeps its own glow, and this stays a
+      transform on a pseudo-element. Sections reveal as you scroll, so the
+      rules are already out of step with each other and never pulse in unison. */
+.rule::before{content:"";position:absolute;top:-1px;left:0;height:3px;width:30%;
+  border-radius:2px;pointer-events:none;opacity:0;will-change:transform,opacity;
+  background:linear-gradient(90deg,rgba(var(--accent-rgb),0) 0%,
+    rgba(var(--accent-rgb),calc(.5 * var(--glow))) 50%,rgba(var(--accent-rgb),0) 100%)}
+.rule.in::before{animation:rule-sheen 13s var(--ease-in-out) 2.2s infinite}
+@keyframes rule-sheen{
+  0%  {opacity:0;transform:translateX(-50%)}
+  4%  {opacity:1}
+  20% {opacity:1}
+  26% {opacity:0;transform:translateX(283%)}
+  100%{opacity:0;transform:translateX(283%)}
+}
+
+/* 3. The line you can join. A short length of light walks the track while the
+      button is idle, which is also the only hint that the thing is holdable
+      before you touch it. It gets out of the way the instant you do: .busy
+      goes on the stage while the real line is drawing or easing back. */
+.line-idle{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;
+  stroke-dasharray:40 4000;opacity:0;pointer-events:none}
+.line-stage.in:not(.busy) .line-idle{animation:line-walk 8s var(--ease-in-out) 1.2s infinite}
+/* Plain numbers on both ends, not calc(-1 * var(--len)). Chrome will not
+   interpolate a length against a calc() holding a custom property: it snapped
+   straight from one keyframe to the other, so the dash sat off the start of
+   the path for half the cycle and off the end for the rest and never once
+   travelled. The opacity animated perfectly the whole time, which is what
+   made it look as though something was happening. The path is fixed in a
+   fixed viewBox, so its 841 units are a constant; -886 clears the end. */
+@keyframes line-walk{
+  0%  {opacity:0;stroke-dashoffset:44}
+  7%  {opacity:.8}
+  46% {opacity:.8}
+  56% {opacity:0;stroke-dashoffset:-886}
+  100%{opacity:0;stroke-dashoffset:-886}
+}
+
+/* Idle motion is the first thing to go: none of it is telling you anything
+   you cannot get from the page standing still. */
+@media (prefers-reduced-motion:reduce){
+  .mark-wrap.drawn .mark-halo,.rule.in::before,.line-stage.in:not(.busy) .line-idle{
+    animation:none}
+  .rule::before{display:none}
+}
+
+/* ============================================================
    MOTION PASS
    Each of these has one named job. Anything that could not be
    named was not built.

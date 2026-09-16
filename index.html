@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=20260916e">
+<link rel="stylesheet" href="assets/style.css?v=20260916f">
 </head>
 
 <body>
@@ -249,6 +249,10 @@
       <svg class="line-svg" viewBox="0 0 900 120" aria-hidden="true">
         <path class="line-track" d="M40 60 C 200 60, 220 20, 320 20 S 500 100, 600 100 S 760 60, 860 60" fill="none"/>
         <path class="line-draw" id="line-draw" d="M40 60 C 200 60, 220 20, 320 20 S 500 100, 600 100 S 760 60, 860 60" fill="none"/>
+        <!-- the idle pulse: a short length of light that walks the track while
+             nobody is holding the button, so the line reads as live before you
+             touch it. It is the same path, so it cannot drift off the line. -->
+        <path class="line-idle" d="M40 60 C 200 60, 220 20, 320 20 S 500 100, 600 100 S 760 60, 860 60" fill="none"/>
       </svg>
       <ol class="line-steps" id="line-steps">
         <li><span>A call comes in</span></li>
@@ -510,6 +514,6 @@
   </div>
 </footer>
 
-<script src="assets/app.js?v=20260916e"></script>
+<script src="assets/app.js?v=20260916f"></script>
 </body>
 </html>

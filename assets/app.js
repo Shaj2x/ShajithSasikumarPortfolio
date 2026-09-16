@@ -61,7 +61,7 @@ var smoothstep = function (p, e0, e1) {
 
 /* ---------- the mark: measure once, then only write on change ---------- */
 var lens = [], total = 0, samples = [];
-var BUILD = '20260916e';
+var BUILD = '20260916f';
 var SAMPLES = 640;   /* points cached per stroke; ~0.2 units of error at hero size */
 
 /* the mark's viewBox, shared by .hero-mark, .head-layer and the canvas field.
@@ -903,8 +903,12 @@ document.addEventListener('visibilitychange', function () {
     btn.querySelector('.hold-label').textContent = 'The line is joined';
   }
 
+  var lastBusy = null;
   function paint() {
     stage.style.setProperty('--hold', v.toFixed(3));
+    /* the idle pulse steps aside the moment the real line starts drawing */
+    var busy = v > 0.002;
+    if (busy !== lastBusy) { lastBusy = busy; stage.classList.toggle('busy', busy); }
     var lit = Math.floor(v * items.length + 0.0001);
     if (lit !== lastLit) {                       /* only touch the DOM on change */
       lastLit = lit;
